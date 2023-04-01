@@ -3557,7 +3557,7 @@ checksum = "d2d7d3948613f75c98fd9328cfdcc45acc4d360655289d0a7d4ec931392200a3"
 [[package]]
 name = "yarn_spool"
 version = "0.1.0"
-source = "git+https://github.com/17cupsofcoffee/yarn_spool#6c586a7a5dcb2263b50e7ab1603378db30cb171c"
+source = "git+https://github.com/josekoalas/yarn_spool#2257e49c1d27489c1a3b15c3fd59d3b749915228"
 dependencies = [
  "bytes",
  "csv",

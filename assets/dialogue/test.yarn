@@ -6,9 +6,12 @@ It's intended to demonstrate a few of Yarn's features.
     You just selected one, cool huh?
 -> Like variables!
     Variables can be declared...
-    <<declare $var to "foo">>
+    <<declare $var to 4>>
     And then interpolated...
-    {$var} is the value of $var.
+    {$var} is the value of the variable
+    <<if $var > 0>>
+        Hola
+    <<endif>>
 -> Like commands!
     Commands signal to your game engine that you want something to happen.
     <<play "mySickAnimation">>

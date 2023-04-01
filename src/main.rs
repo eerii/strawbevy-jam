@@ -3,12 +3,15 @@
 use std::io::BufRead;
 
 use bevy::prelude::*;
-use yarn_spool::{read_string_table_file, expand_substitutions, Dialogue, DialogueEvent, Program as DialogueProgram};
+use yarn_spool::{
+    expand_substitutions, read_string_table_file, Dialogue, DialogueEvent,
+    Program as DialogueProgram,
+};
 
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
-        .add_systems(Startup, init)
+        .add_systems(Startup, (init, dialogue))
         .run();
 }
 
@@ -36,10 +39,10 @@ fn dialogue() {
                 let raw_text = &dialogue_lines[&line.id].text;
                 let text = expand_substitutions(raw_text, &line.substitutions);
                 println!("{}", text);
-            },
+            }
             DialogueEvent::Command => {
                 println!("<<{}>>", dialogue.current_command());
-            },
+            }
             DialogueEvent::Options => {
                 for opt in dialogue.current_options() {
                     let raw_text = &dialogue_lines[&opt.line.id].text;
@@ -48,7 +51,10 @@ fn dialogue() {
                 }
 
                 input.clear();
-                std::io::stdin().lock().read_line(&mut input).expect("can't read input");
+                std::io::stdin()
+                    .lock()
+                    .read_line(&mut input)
+                    .expect("can't read input");
                 let option = input.trim().parse().expect("can't parse input");
                 dialogue.set_selected_option(option);
             }
