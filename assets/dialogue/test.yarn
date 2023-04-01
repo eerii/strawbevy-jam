@@ -1,0 +1,25 @@
+title: Start
+---
+This is an example script.
+It's intended to demonstrate a few of Yarn's features.
+-> Like options!
+    You just selected one, cool huh?
+-> Like variables!
+    Variables can be declared...
+    <<declare $var to "foo">>
+    And then interpolated...
+    {$var} is the value of $var.
+-> Like commands!
+    Commands signal to your game engine that you want something to happen.
+    <<play "mySickAnimation">>
+    There are also some built in commands, like 'jump'...
+    <<jump JumpTarget>>
+Text after an option set will be displayed in all cases, unless there's a jump in one of the branches.
+===
+title: JumpTarget
+---
+Which takes you to a different node!
+And 'stop', which ends the dialogue.
+<<stop>>
+So this will never display!
+===
