@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy" } # Dev version
+bevy = { git = "https://github.com/bevyengine/bevy", rev = "f0f5d79" }
 yarn-spinner = { git = "https://github.com/josekoalas/yarn-spinner" }
 
 [profile.dev.package."*"]

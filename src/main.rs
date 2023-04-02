@@ -1,12 +1,18 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 use std::iter::zip;
+
 use bevy::{
     prelude::*,
     asset::{Assets, AssetLoader, LoadContext, LoadedAsset},
     utils::BoxedFuture,
-    reflect::TypeUuid
+    reflect::TypeUuid,
+    /*render::{
+        render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages},
+        view::RenderLayers, camera::RenderTarget
+    }*/
 };
+
 use yarn_spinner::{ExecutionOutput, LineHandler, YarnProgram, YarnRunner, YarnStorage};
 
 // ---
@@ -91,13 +97,43 @@ impl AssetLoader for DialogueLinesAssetLoader {
 
 // General initialization
 fn init(mut cmd : Commands, assets : Res<AssetServer>) {
-    // Camera
+    // Render text camera
+    /*let size = Extent3d { width: 512, height: 512, ..default() };
+    let mut image = Image {
+        texture_descriptor: TextureDescriptor {
+            label: None,
+            size,
+            dimension: TextureDimension::D2,
+            format: TextureFormat::Bgra8UnormSrgb,
+            mip_level_count: 1,
+            sample_count: 1,
+            usage: TextureUsages::TEXTURE_BINDING
+                | TextureUsages::COPY_DST
+                | TextureUsages::RENDER_ATTACHMENT,
+            view_formats: &[TextureFormat::Bgra8UnormSrgb],
+        },
+        ..default()
+    };
+    image.resize(size);
+    let text_image_target = images.add(image);
+
+    let text_pass_layer = RenderLayers::layer(1); // Add component to objects you want to render in this pass
+    cmd.spawn((Camera2dBundle {
+        camera: Camera {
+            order: -1,
+            target: RenderTarget::Image(text_image_target.clone()),
+            ..default()
+        },
+        ..default()
+    }, text_pass_layer));*/
+
+    // Main camera
     cmd.spawn(Camera2dBundle::default());
     
     // Dialogue box
     let text_style = TextStyle {
         font : assets.load("fonts/dogicabold.ttf"),
-        font_size : 24.0,
+        font_size : 16.0,
         color : Color::WHITE,
     };
     cmd.spawn((
@@ -134,7 +170,7 @@ fn dialogue_init(mut cmd : Commands, assets : Res<AssetServer>) {
 // ---
 // Update systems
 
-const OPTION_KEYS : &'static [KeyCode] = &[KeyCode::Key1, KeyCode::Key2, KeyCode::Key3];
+const OPTION_KEYS : &[KeyCode] = &[KeyCode::Key1, KeyCode::Key2, KeyCode::Key3];
 
 fn dialogue_update(keyboard : Res<Input<KeyCode>>, 
                    mut yarn : ResMut<DialogueManager>,
@@ -146,15 +182,15 @@ fn dialogue_update(keyboard : Res<Input<KeyCode>>,
     let runner = asset_runner.get_mut(&yarn.runner);
     let lines = asset_lines.get(&yarn.lines);
     if runner.is_none() || lines.is_none() {
-        return ();
+        return;
     }
     let DialogueRunner(ref mut runner) = runner.unwrap();
     let DialogueLines(lines) = lines.unwrap();
 
     // If there are options, check if the user presses the relevant key
     if yarn.waiting_input > 0 {
-        for i in 0..yarn.waiting_input {
-            if keyboard.just_pressed(OPTION_KEYS[i]) {
+        for (i, key) in OPTION_KEYS.iter().enumerate().take(yarn.waiting_input) {
+            if keyboard.just_pressed(*key) {
                 runner.select_option(i).unwrap();
                 yarn.waiting_input = 0;
                 for mut d in dialogue_options.iter_mut() {
@@ -170,7 +206,7 @@ fn dialogue_update(keyboard : Res<Input<KeyCode>>,
         yarn.waiting_continue = false;
     }
     if yarn.waiting_continue || yarn.waiting_input > 0 {
-        return ();
+        return;
     }
 
     // Update the dialogue with the options
@@ -197,9 +233,7 @@ fn dialogue_update(keyboard : Res<Input<KeyCode>>,
                 println!("todo: {:?}", cmd);
             },
             ExecutionOutput::Function(function) => {
-                println!("func: {:?}", function);
                 let output = yarn_spinner::handle_default_functions(&function);
-                println!("output: {:?}", output);
                 runner.return_function(output.unwrap().unwrap()).unwrap();
             }
         }

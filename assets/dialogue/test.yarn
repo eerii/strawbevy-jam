@@ -10,7 +10,7 @@ position: 0,200
 ---
 Buenos días, cómo estás?
 -> Bien
-    Eres muy guape!
+    Qué bien!
     <<wait 1>>
     <<jump Seguir>>
 -> Mal
