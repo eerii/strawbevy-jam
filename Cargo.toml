@@ -6,7 +6,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 bevy = { git = "https://github.com/bevyengine/bevy" } # Dev version
-yarn-spinner = { git = "https://github.com/sanbox-irl/yarn-spinner" }
+yarn-spinner = { git = "https://github.com/josekoalas/yarn-spinner" }
 
 [profile.dev.package."*"]
 opt-level = 3 # High optimizaitons for libraries (such as bevy)
