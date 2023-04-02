@@ -4,12 +4,9 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
-[dependencies.bevy]
-git = "https://github.com/bevyengine/bevy" # Dev version
-
-[dependencies.yarn_spool]
-git = "https://github.com/josekoalas/yarn_spool"
-# path = "../../Rust/yarn_spool"
+[dependencies]
+bevy = { git = "https://github.com/bevyengine/bevy" } # Dev version
+yarn-spinner = { git = "https://github.com/sanbox-irl/yarn-spinner" }
 
 [profile.dev.package."*"]
 opt-level = 3 # High optimizaitons for libraries (such as bevy)

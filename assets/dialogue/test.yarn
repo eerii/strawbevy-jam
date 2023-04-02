@@ -1,28 +1,63 @@
 title: Start
 ---
-This is an example script.
-It's intended to demonstrate a few of Yarn's features.
--> Like options!
-    You just selected one, cool huh?
--> Like variables!
-    Variables can be declared...
-    <<declare $var to 4>>
-    And then interpolated...
-    {$var} is the value of the variable
-    <<if $var > 0>>
-        Hola
-    <<endif>>
--> Like commands!
-    Commands signal to your game engine that you want something to happen.
-    <<play "mySickAnimation">>
-    There are also some built in commands, like 'jump'...
-    <<jump JumpTarget>>
-Text after an option set will be displayed in all cases, unless there's a jump in one of the branches.
+<<declare $estres to 0>>
+<<declare $genero to "nb">>
+<<declare $bebidas to 0>>
+<<jump Bienvenida>>
 ===
-title: JumpTarget
+title: Bienvenida
+position: 0,200
 ---
-Which takes you to a different node!
-And 'stop', which ends the dialogue.
-<<stop>>
-So this will never display!
+Buenos días, cómo estás?
+-> Bien
+    Eres muy guape!
+    <<wait 1>>
+    <<jump Seguir>>
+-> Mal
+    <<jump Mal>>
+===
+title: Mal
+position: 300,200
+---
+Oh, lo siento mucho #tono:falso
+...
+Quieres hablar de ello?
+<<set $estres to $estres + 10>>
+-> Si
+    <<jump Fin>>
+-> No
+    Segure?
+    <<set $estres to $estres + 30>>
+    -> Si
+        <<jump Seguir>>
+    -> No
+        Vale, vale, ya paro #tono:indignado
+        <<jump Seguir>>
+===
+title: Seguir
+position: 300,0
+---
+Tienes un estrés de {$estres}
+<<if $estres > 20>>
+    *Te levantas y te vas*
+    <<stop>>
+<<else>>
+    *Te quedas sentade*
+<<endif>>
+<<jump Bebida>>
+===
+title: Bebida
+position: 600,0
+---
+Quieres beber algo?
+-> Si
+    <<set $bebidas to $bebidas + 1>>
+    <<jump Bebida>>
+-> No
+    <<jump Fin>>
+===
+title: Fin
+position: 600,200
+---
+Has tomado {$bebidas} bebidas
 ===

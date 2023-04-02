@@ -1,12 +1,7 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-use std::io::BufRead;
-
 use bevy::prelude::*;
-use yarn_spool::{
-    expand_substitutions, read_string_table_file, Dialogue, DialogueEvent,
-    Program as DialogueProgram,
-};
+use yarn_spinner::{ExecutionOutput, LineHandler, YarnProgram, YarnRunner, YarnStorage};
 
 fn main() {
     App::new()
@@ -24,39 +19,39 @@ fn init(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 fn dialogue() {
-    let dialogue_program = DialogueProgram::from_file("assets/dialogue/build/test.yarnc");
-    let dialogue_lines = read_string_table_file("assets/dialogue/build/test-Lines.csv");
+    let mut storage = YarnStorage::new();
+    let mut runner = YarnRunner::new(YarnProgram::new(include_bytes!("../assets/dialogue/build/test.yarnc")).unwrap());
+    let lines = LineHandler::new(include_str!("../assets/dialogue/build/test-Lines.csv"));
+    runner.set_node("Start").unwrap();
 
-    let mut dialogue = Dialogue::new();
-    dialogue.add_program(&dialogue_program);
-
-    let mut input = String::new();
-
-    while let Some(e) = dialogue.advance() {
-        match e {
-            DialogueEvent::Line => {
-                let line = dialogue.current_line();
-                let raw_text = &dialogue_lines[&line.id].text;
-                let text = expand_substitutions(raw_text, &line.substitutions);
+    while let Some(out) = runner.execute(&mut storage).unwrap() {
+        match out {
+            ExecutionOutput::Line(line) => {
+                let text = lines.line(&line).unwrap();
                 println!("{}", text);
-            }
-            DialogueEvent::Command => {
-                println!("<<{}>>", dialogue.current_command());
-            }
-            DialogueEvent::Options => {
-                for opt in dialogue.current_options() {
-                    let raw_text = &dialogue_lines[&opt.line.id].text;
-                    let text = expand_substitutions(raw_text, &opt.line.substitutions);
-                    println!("{}) {}", opt.index, text);
+                //std::io::stdin().read_line(&mut String::new()).unwrap();
+            },
+            ExecutionOutput::Options(opts) => {
+                for opt in opts {
+                    let v = lines.line(opt.line()).unwrap();
+                    let v = match opt.condition_passed() {
+                        Some(true) | None => v,
+                        Some(false) => { format!("{} (DISABLED)", v) }
+                    };
+                    println!("{}", v);
                 }
-
-                input.clear();
-                std::io::stdin()
-                    .lock()
-                    .read_line(&mut input)
-                    .expect("can't read input");
-                let option = input.trim().parse().expect("can't parse input");
-                dialogue.set_selected_option(option);
+                let mut selection = String::new();
+                std::io::stdin().read_line(&mut selection).unwrap();
+                let opt = selection.trim().parse().unwrap();
+                runner.select_option(opt).unwrap();
+            },
+            ExecutionOutput::Command(cmd) => {
+                println!("todo: {:?}", cmd);
+            },
+            ExecutionOutput::Function(function) => {
+                println!("func: {:?}", function);
+                let output = yarn_spinner::handle_default_functions(&function).unwrap().unwrap();
+                runner.return_function(output).unwrap();
             }
         }
     }
