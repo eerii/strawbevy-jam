@@ -1,63 +1,20 @@
 title: Start
 ---
-<<declare $estres to 0>>
-<<declare $genero to "nb">>
-<<declare $bebidas to 0>>
-<<jump Bienvenida>>
+A: ¿Qué quieres tomar?
+B: Me apetece ___ con un croissant
+-> un zumo de naranja
+    <<jump ZumoDeNaranja>>
+-> una cerveza
+    <<define $alcohol to 1>>
+    A: Sigues con los mismos hábitos, eh?
+-> el resto
+    A: Eso no tiene ningún sentido
+    A: Voy a pedirte un agua, anda
+A: Sigue la conversación
 ===
-title: Bienvenida
-position: 0,200
+title: ZumoDeNaranja
 ---
-Buenos días, cómo estás?
--> Bien
-    Qué bien!
-    <<wait 1>>
-    <<jump Seguir>>
--> Mal
-    <<jump Mal>>
-===
-title: Mal
-position: 300,200
----
-Oh, lo siento mucho #tono:falso
-...
-Quieres hablar de ello?
-<<set $estres to $estres + 10>>
--> Si
-    <<jump Fin>>
--> No
-    Segure?
-    <<set $estres to $estres + 30>>
-    -> Si
-        <<jump Seguir>>
-    -> No
-        Vale, vale, ya paro #tono:indignado
-        <<jump Seguir>>
-===
-title: Seguir
-position: 300,0
----
-Tienes un estrés de {$estres}
-<<if $estres > 20>>
-    *Te levantas y te vas*
-    <<stop>>
-<<else>>
-    *Te quedas sentade*
-<<endif>>
-<<jump Bebida>>
-===
-title: Bebida
-position: 600,0
----
-Quieres beber algo?
--> Si
-    <<set $bebidas to $bebidas + 1>>
-    <<jump Bebida>>
--> No
-    <<jump Fin>>
-===
-title: Fin
-position: 600,200
----
-Has tomado {$bebidas} bebidas
+A: Oh, te acuerdas
+B: Claro, era nuestro favorito
+A: Bla bla bla
 ===
