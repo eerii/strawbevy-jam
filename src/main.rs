@@ -5,6 +5,8 @@ use dialogue::*;
 
 use bevy::{
     prelude::*,
+    core_pipeline::clear_color::ClearColorConfig,
+    window::WindowResolution,
     /*render::{
         render_resource::{Extent3d, TextureDescriptor, TextureDimension, TextureFormat, TextureUsages},
         view::RenderLayers, camera::RenderTarget
@@ -16,9 +18,16 @@ use bevy::{
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                title: "Strawbevy Jam".to_string(),
+                resolution: WindowResolution::new(800., 800.),
+                ..default()
+            }),
+            ..default()
+        }))
         .add_plugin(DialoguePlugin)
-        .add_systems(Startup, (init, dialogue_init))
+        .add_systems(Startup, (scene_init, text_init, dialogue_init))
         .add_systems(Update, dialogue_update)
         .run();
 }
@@ -26,12 +35,30 @@ fn main() {
 // ---
 // Components
 
+#[derive(Component)]
+struct FpsText {}
 
 // ---
 // Startup systems
 
+// 3D Scene initalization
+fn scene_init(mut cmd : Commands, assets : Res<AssetServer>) {
+    // Main camera
+    cmd.spawn(Camera3dBundle {
+        transform: Transform::from_xyz(-6.0, 6.0, 15.0)
+            .looking_at(Vec3::new(-5.5, 3.0, 0.0), Vec3::Y),
+        ..default()
+    });
+
+    // Load scene from gltf (exported from Blender)
+    cmd.spawn(SceneBundle {
+        scene: assets.load("models/escena.glb#Scene0"),
+        ..default()
+    });
+}
+
 // General initialization
-fn init(mut cmd : Commands, assets : Res<AssetServer>) {
+fn text_init(mut cmd : Commands, assets : Res<AssetServer>) {
     // Render text camera
     /*let size = Extent3d { width: 512, height: 512, ..default() };
     let mut image = Image {
@@ -62,8 +89,17 @@ fn init(mut cmd : Commands, assets : Res<AssetServer>) {
         ..default()
     }, text_pass_layer));*/
 
-    // Main camera
-    cmd.spawn(Camera2dBundle::default());
+    // Dialogue text camera
+    cmd.spawn(Camera2dBundle{
+        camera_2d: Camera2d {
+            clear_color: ClearColorConfig::None
+        },
+        camera: Camera {
+            order: 1,
+            ..default()
+        },
+        ..default()
+    });
     
     // Dialogue box
     let text_style = TextStyle {
@@ -77,7 +113,7 @@ fn init(mut cmd : Commands, assets : Res<AssetServer>) {
             transform : Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         },
-        DialogueBox {}
+        DialogueBox{}
     ));
     for i in 0..3 {
         cmd.spawn((
@@ -93,5 +129,3 @@ fn init(mut cmd : Commands, assets : Res<AssetServer>) {
 
 // ---
 // Update systems
-
-
