@@ -77,7 +77,7 @@ impl AssetLoader for DialogueLinesAssetLoader {
             Ok(())
         })
     }
-    fn extensions(&self) -> &[&str] { &["csv"] }
+    fn extensions(&self) -> &[&str] { &["yarnl"] }
 }
 
 // ---
@@ -97,7 +97,7 @@ pub fn dialogue_init(mut cmd : Commands, assets : Res<AssetServer>) {
     cmd.insert_resource(DialogueManager {
         storage : YarnStorage::new(),
         runner : assets.load("dialogue/build/test.yarnc"),
-        lines : assets.load("dialogue/build/test-Lines.csv"),
+        lines : assets.load("dialogue/build/test.yarnl"),
         waiting_continue : false,
         waiting_input : 0
     });
