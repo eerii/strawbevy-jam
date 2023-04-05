@@ -105,8 +105,8 @@ pub fn get_yarn_components<'a, 'b>(yarn : &'_ ResMut<YarnManager>,
     let runner = yarn.runner.as_ref().expect("you need to load a dialogue with the dialogue manager");
     let lines = yarn.lines.as_ref().expect("you need to load a dialogue with the dialogue manager");
     
-    let runner = asset_runner.get_mut(&runner);
-    let lines = asset_lines.get(&lines);
+    let runner = asset_runner.get_mut(runner);
+    let lines = asset_lines.get(lines);
     if runner.is_none() || lines.is_none() { return None; }
 
     let YarnRunnerAsset(ref mut runner) = runner.unwrap();

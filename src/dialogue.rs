@@ -1,7 +1,7 @@
 // Dialogue system using the yarn spinner plugin for bevy
 
 use super::{
-    Player, TextResource,
+    Player,
     yarn::*
 };
 use bevy::{
@@ -20,20 +20,28 @@ const CARD_PADDING : f32 = 0.15;
 const CARD_SIZE : Extent3d = Extent3d { width: 256, height: 384, depth_or_array_layers: 1 };
 
 // ---
+// Resources
+
+#[derive(Resource)]
+pub struct Props {
+    card_mesh : Handle<Mesh>,
+    box_style : TextStyle,
+    card_style : TextStyle,
+    card_texture_descriptor : TextureDescriptor<'static>,
+}
+
+// ---
 // Components
 
 #[derive(Component)]
 pub struct DialogueBox;
 
+#[derive(Default)]
 enum CardStatus {
+    #[default]
     Empty,
     Rendered,
     Done
-}
-impl Default for CardStatus {
-    fn default() -> Self {
-        CardStatus::Empty
-    }
 }
 
 #[derive(Debug)]
@@ -104,8 +112,46 @@ impl<'a> DialogueCard<'a> {
 // ---
 // Startup systems
 
+// Resource initalization
+pub fn res_init(mut cmd : Commands,
+                assets : Res<AssetServer>,
+                mut meshes: ResMut<Assets<Mesh>>) {
+    // Create plane mesh
+    let card_mesh = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(0.2, 0.3))));
+
+    // Dialogue text styles
+    let font = assets.load("fonts/dogicabold.ttf");
+    let box_style = TextStyle {
+        font : font.clone(),
+        font_size : 16.0,
+        color : Color::WHITE,
+    };
+    let card_style = TextStyle {
+        font,
+        font_size : 16.0,
+        color : Color::BLACK,
+    };
+
+    // Card texture properties
+    let card_texture_descriptor = TextureDescriptor {
+        label: None,
+        size: CARD_SIZE,
+        dimension: TextureDimension::D2,
+        format: TextureFormat::Bgra8UnormSrgb,
+        mip_level_count: 1,
+        sample_count: 1,
+        usage: TextureUsages::TEXTURE_BINDING
+             | TextureUsages::COPY_DST
+             | TextureUsages::RENDER_ATTACHMENT,
+        view_formats: &[TextureFormat::Bgra8UnormSrgb],
+    };
+
+    // Save state
+    cmd.insert_resource(Props { card_mesh, box_style, card_style, card_texture_descriptor });
+}
+
 // Dialogue box initialization
-pub fn box_init(mut cmd : Commands, assets : Res<AssetServer>) { 
+pub fn box_init(mut cmd : Commands, props : Res<Props>) { 
     // Dialogue text camera
     cmd.spawn(
         Camera2dBundle{
@@ -121,14 +167,9 @@ pub fn box_init(mut cmd : Commands, assets : Res<AssetServer>) {
     ); 
 
     // Dialogue box
-    let text_style = TextStyle {
-        font : assets.load("fonts/dogicabold.ttf"),
-        font_size : 16.0,
-        color : Color::WHITE,
-    };
     cmd.spawn((
         Text2dBundle {
-            text : Text::from_section("", text_style.clone()),
+            text : Text::from_section("", props.box_style.clone()),
             transform : Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         },
@@ -137,53 +178,42 @@ pub fn box_init(mut cmd : Commands, assets : Res<AssetServer>) {
 }
 
 pub fn card_init(mut cmd : Commands,
+                 props : Res<Props>,
                  assets : Res<AssetServer>,
                  mut yarn : ResMut<YarnManager>,
-                 mut meshes: ResMut<Assets<Mesh>>,
                  mut images: ResMut<Assets<Image>>,
                  mut materials: ResMut<Assets<StandardMaterial>>) {
     // Load dialogue
     yarn.load("test", &assets);
-
-    // Create plane mesh
-    let card_mesh = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(0.2, 0.3))));
-
-    // Text properties
-    let texture_descriptor = TextureDescriptor {
-        label: None,
-        size: CARD_SIZE,
-        dimension: TextureDimension::D2,
-        format: TextureFormat::Bgra8UnormSrgb,
-        mip_level_count: 1,
-        sample_count: 1,
-        usage: TextureUsages::TEXTURE_BINDING
-             | TextureUsages::COPY_DST
-             | TextureUsages::RENDER_ATTACHMENT,
-        view_formats: &[TextureFormat::Bgra8UnormSrgb],
-    };
-    let text_style = TextStyle {
-        font : assets.load("fonts/dogicabold.ttf"),
-        font_size : 16.0,
-        color : Color::WHITE,
-    };
-
-    // Create test dialogue cards
-    let words = ["hey"];
-    for w in words {
-        let mut image = Image { texture_descriptor : texture_descriptor.clone(), ..default() };
-        image.resize(CARD_SIZE);
-        let image_handle = images.add(image);
-
-        cmd.spawn((
-            PbrBundle {
-                mesh: card_mesh.clone(),
-                material: materials.add(StandardMaterial{base_color_texture : Some(image_handle.clone()), ..default()}),
-                transform: Transform::from_scale(Vec3::splat(0.)),
-                ..default()
-            },
-            DialogueCard::new(w, image_handle.clone(), text_style.clone()),
-        ));
+ 
+    // Create test cards
+    let words = ["hey", "hi", "hello"];
+    for word in words.iter() {
+        create_card(word, &mut cmd, &props, &mut images, &mut materials);
     }
+}
+
+fn create_card(word : &'static str,
+               cmd : &mut Commands,
+               props : &Res<Props>,
+               images : &mut ResMut<Assets<Image>>,
+               materials: &mut ResMut<Assets<StandardMaterial>>) {
+    // Text properties
+    
+    // Create dialogue card
+    let mut image = Image { texture_descriptor : props.card_texture_descriptor.clone(), ..default() };
+    image.resize(CARD_SIZE);
+    let image_handle = images.add(image);
+
+    cmd.spawn((
+        PbrBundle {
+            mesh: props.card_mesh.clone(),
+            material: materials.add(StandardMaterial{base_color_texture : Some(image_handle.clone()), ..default()}),
+            transform: Transform::from_scale(Vec3::splat(0.)),
+            ..default()
+        },
+        DialogueCard::new(word, image_handle, props.card_style.clone()),
+    ));
 }
 
 // ---
@@ -248,7 +278,7 @@ pub fn card_update(mut cmd : Commands,
     // Obtain the player transformation
     if let Ok(mut player_trans) = player.get_single_mut() {
         //TODO: Delete this
-        *player_trans = player_trans.looking_at(Vec3::new(-5.5 + time.elapsed_seconds().sin(), 3.0, 0.0), Vec3::Y);
+        *player_trans = player_trans.looking_at(Vec3::new(-5.5 + time.elapsed_seconds().sin() * 0.2, 3.0, 0.0), Vec3::Y);
 
         // Update the cards
         let n = cards.iter().count();
@@ -265,7 +295,8 @@ pub fn card_update(mut cmd : Commands,
                 CardStatus::Done => {
                     let off = CARD_PADDING * i as f32 - CARD_PADDING * ((n-1) as f32 / 2.0);
                     trans.translation = player_trans.translation + player_trans.rotation.mul_vec3(Vec3::new(off, -0.35 - off.abs() * 0.1, -1.0 - 0.01 * i as f32));
-                    trans.rotation = player_trans.rotation.clone()
+                    trans.rotation = player_trans.rotation
+                        .mul_quat(Quat::from_rotation_y(off * 0.5))
                         .mul_quat(Quat::from_rotation_z(-off * 0.5));
                 }
             }

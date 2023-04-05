@@ -5,7 +5,7 @@ B: Me apetece ___ con un croissant
 -> un zumo de naranja
     <<jump ZumoDeNaranja>>
 -> una cerveza
-    <<define $alcohol to 1>>
+    <<set $alcohol to 1>>
     A: Sigues con los mismos hábitos, eh?
 -> el resto
     A: Eso no tiene ningún sentido

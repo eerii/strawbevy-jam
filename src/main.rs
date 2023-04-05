@@ -1,5 +1,14 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
+// TODO:
+// - Animar cartas mejor, darles textura
+// - Tomar cartas (basado en opciones del script)
+// - Jugar las cartas
+// - Menú de opciones y pantalla de cartas
+// - Integración con fmod
+// - Dibujar mejores texturas
+// - Efectos especiales, polish, etc...
+
 mod yarn;
 mod dialogue;
 
@@ -28,8 +37,9 @@ fn main() {
             ..default()
         }))
         .add_plugin(YarnPlugin)
-        .add_systems(Startup, (init, scene_init, dialogue::box_init, dialogue::card_init))
-        .add_systems(Update, (dialogue::update, dialogue::card_update, animation_update))
+        .add_systems(PreStartup, (res_init, dialogue::res_init))
+        .add_systems(Startup, (scene_init, dialogue::box_init, dialogue::card_init))
+        .add_systems(Update, (dialogue::update, dialogue::card_update, candle_update, animation_post_init))
         .run();
 }
 
@@ -48,37 +58,52 @@ struct Animations(Vec<Handle<AnimationClip>>);
 #[derive(Resource)]
 struct PerlinNoise(Perlin);
 
-#[derive(Resource)]
-pub struct TextResource {
-    style_dialogue : TextStyle,
-    style_card : TextStyle
-}
-
 // ---
 // Startup systems
 
-// General initialization
-fn init(mut cmd : Commands) {
+// Resource initialization
+fn res_init(mut cmd : Commands) {
     // Perlin noise resource
     cmd.insert_resource(PerlinNoise(Perlin::new(1)));
 }
 
 // 3D Scene initalization
 fn scene_init(mut cmd : Commands, assets : Res<AssetServer>) {
-    // Main camera
+    // Main camera and player
     cmd.spawn((
         Camera3dBundle {
-            transform: Transform::from_xyz(-6.0, 6.0, 15.0)
+            transform : Transform::from_xyz(-6.0, 6.0, 15.0)
                 .looking_at(Vec3::new(-5.5, 3.0, 0.0), Vec3::Y),
+            ..default()
+        },
+        FogSettings {
+            color : Color::rgba(0.01, 0.01, 0.01, 0.7),
+            falloff : FogFalloff::Linear {
+                start: 20.0,
+                end: 35.0,
+            },
             ..default()
         },
         Player{}
     ));
 
+    // Player point light
+    cmd.spawn(
+        PointLightBundle {
+            transform : Transform::from_xyz(-8.0, 5.2, 16.0),
+            point_light : PointLight {
+                color : Color::rgb(1.0, 0.7, 0.5),
+                intensity : 500.,
+                ..default()
+            },
+            ..default()
+        }
+    );
+
     // Load scene from gltf (exported from Blender)
     cmd.spawn(
         SceneBundle {
-            scene: assets.load("models/escena.glb#Scene0"),
+            scene : assets.load("models/escena.glb#Scene0"),
             ..default()
         }
     );
@@ -92,24 +117,25 @@ fn scene_init(mut cmd : Commands, assets : Res<AssetServer>) {
 }
 
 // ---
-// Update systems
+// Late startup systems
 
-// Start playing the animation from the scene after it is loaded
-// Also animate the candle lights with flicker
-fn animation_update(animations : Res<Animations>,
-                    time : Res<Time>,
-                    perlin : Res<PerlinNoise>,
-                    mut anim_player : Query<&mut AnimationPlayer>,
-                    mut lights : Query<&mut PointLight>,
-                    mut is_anim_init : Local<bool>) {
-    if !*is_anim_init {
+// Start playing the first animation
+fn animation_post_init(animations : Res<Animations>, mut anim_player : Query<&mut AnimationPlayer>, mut done : Local<bool>) {
+    if !*done {
         if let Ok(mut anim_player) = anim_player.get_single_mut() {
             anim_player.play(animations.0[0].clone_weak()).repeat();
-            *is_anim_init = true;
+            *done = true;
         }
     }
+}
 
+// ---
+// Update systems
+
+// Also animate the candle lighs with flicker
+fn candle_update(time : Res<Time>, perlin : Res<PerlinNoise>, mut lights : Query<&mut PointLight>) {
     for mut light in lights.iter_mut().filter(|x| x.intensity < 500.) {
         light.intensity = 100. + 40. * perlin.0.get([3. * time.elapsed_seconds() as f64, 0.0]) as f32;
     }
 }
+

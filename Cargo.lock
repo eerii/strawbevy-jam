@@ -3537,7 +3537,7 @@ checksum = "d2d7d3948613f75c98fd9328cfdcc45acc4d360655289d0a7d4ec931392200a3"
 [[package]]
 name = "yarn-spinner"
 version = "0.1.0"
-source = "git+https://github.com/josekoalas/yarn-spinner#1e2411f999bfcb4d81850ae1df1b26fac6f3c507"
+source = "git+https://github.com/sanbox-irl/yarn-spinner#f6cc63d81a53d5950b064d4a368d04a639620e08"
 dependencies = [
  "csv",
  "prost",
