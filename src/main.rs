@@ -48,6 +48,12 @@ struct Animations(Vec<Handle<AnimationClip>>);
 #[derive(Resource)]
 struct PerlinNoise(Perlin);
 
+#[derive(Resource)]
+pub struct TextResource {
+    style_dialogue : TextStyle,
+    style_card : TextStyle
+}
+
 // ---
 // Startup systems
 
