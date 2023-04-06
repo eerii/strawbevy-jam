@@ -12,12 +12,17 @@ use bevy::{
         view::RenderLayers, camera::RenderTarget
     },
 };
+use rand::Rng;
 
 // ---
 // Constants
 
 const CARD_PADDING : f32 = 0.15;
 const CARD_SIZE : Extent3d = Extent3d { width: 256, height: 384, depth_or_array_layers: 1 };
+#[cfg(target_arch = "wasm32")]
+const CARD_RENDER_FRAME_WAIT : u8 = 16;
+#[cfg(not(target_arch = "wasm32"))]
+const CARD_RENDER_FRAME_WAIT : u8 = 4;
 
 // ---
 // Resources
@@ -36,7 +41,7 @@ pub struct Props {
 #[derive(Component)]
 pub struct DialogueBox;
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 enum CardStatus {
     #[default]
     Empty,
@@ -47,14 +52,16 @@ enum CardStatus {
 #[derive(Debug)]
 struct CardRenderError;
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Debug)]
 pub struct DialogueCard<'a> {
     status : CardStatus,
     text : &'a str,
     image : Handle<Image>,
     style : TextStyle,
     camera : Option<Entity>,
-    text_renderer : Option<Entity>
+    text_renderer : Option<Entity>,
+    render_layer : Option<u8>,
+    ready_counter : u8
 }
 
 impl<'a> DialogueCard<'a> {
@@ -90,6 +97,8 @@ impl<'a> DialogueCard<'a> {
         )).id());
 
         self.status = CardStatus::Rendered;
+        self.render_layer = Some(render_layer);
+        self.ready_counter = CARD_RENDER_FRAME_WAIT;
         Ok(())
     }
 
@@ -105,6 +114,7 @@ impl<'a> DialogueCard<'a> {
         }
 
         self.status = CardStatus::Done;
+        self.render_layer = None;
         Ok(())
     }
 }
@@ -137,13 +147,13 @@ pub fn res_init(mut cmd : Commands,
         label: None,
         size: CARD_SIZE,
         dimension: TextureDimension::D2,
-        format: TextureFormat::Bgra8UnormSrgb,
+        format: TextureFormat::R8Unorm,
         mip_level_count: 1,
         sample_count: 1,
         usage: TextureUsages::TEXTURE_BINDING
              | TextureUsages::COPY_DST
              | TextureUsages::RENDER_ATTACHMENT,
-        view_formats: &[TextureFormat::Bgra8UnormSrgb],
+        view_formats: &[TextureFormat::R8Unorm],
     };
 
     // Save state
@@ -197,9 +207,7 @@ fn create_card(word : &'static str,
                cmd : &mut Commands,
                props : &Res<Props>,
                images : &mut ResMut<Assets<Image>>,
-               materials: &mut ResMut<Assets<StandardMaterial>>) {
-    // Text properties
-    
+               materials: &mut ResMut<Assets<StandardMaterial>>) -> Entity { 
     // Create dialogue card
     let mut image = Image { texture_descriptor : props.card_texture_descriptor.clone(), ..default() };
     image.resize(CARD_SIZE);
@@ -209,11 +217,11 @@ fn create_card(word : &'static str,
         PbrBundle {
             mesh: props.card_mesh.clone(),
             material: materials.add(StandardMaterial{base_color_texture : Some(image_handle.clone()), ..default()}),
-            transform: Transform::from_scale(Vec3::splat(0.)),
+            transform: Transform::from_xyz(0., 0., 0.),
             ..default()
         },
         DialogueCard::new(word, image_handle, props.card_style.clone()),
-    ));
+    )).id()
 }
 
 // ---
@@ -272,34 +280,58 @@ pub fn update(keyboard : Res<Input<KeyCode>>,
 // Updates the cards position and attributes
 pub fn card_update(mut cmd : Commands,
                    time : Res<Time>,
+                   props : Res<Props>,
+                   keyboard : Res<Input<KeyCode>>,
                    mut player : Query<&mut Transform, With<Player>>,
-                   mut cards : Query<(&mut DialogueCard<'static>, &mut Transform), Without<Player>>,
-                   mut render_layer : Local<u8>) {
+                   mut cards : Query<(Entity, &mut DialogueCard<'static>, &mut Transform), Without<Player>>,
+                   mut images: ResMut<Assets<Image>>,
+                   mut materials: ResMut<Assets<StandardMaterial>>,
+                   mut render_layer : Local<[bool;4]>) {
     // Obtain the player transformation
     if let Ok(mut player_trans) = player.get_single_mut() {
         //TODO: Delete this
-        *player_trans = player_trans.looking_at(Vec3::new(-5.5 + time.elapsed_seconds().sin() * 0.2, 3.0, 0.0), Vec3::Y);
+        *player_trans = player_trans.looking_at(Vec3::new(-5.5 + time.elapsed_seconds().sin() * 0.2, 3.0, 0.0), Vec3::Y); 
+
+        // TODO: DELETE Press x to spawn a card
+        if keyboard.just_pressed(KeyCode::X) {
+            create_card("x", &mut cmd, &props, &mut images, &mut materials);
+        }
 
         // Update the cards
         let n = cards.iter().count();
-        for (i, (mut card, mut trans)) in cards.iter_mut().enumerate() {
+        for (i, (_, mut card, mut trans)) in cards.iter_mut().enumerate() {
             match card.status {
                 CardStatus::Empty => {
-                    *render_layer += 1;
-                    card.render(*render_layer, &mut cmd).unwrap();
+                    // Get first available render layer
+                    let layer = render_layer.iter().position(|&x| !x);
+                    if let Some(layer) = layer {
+                        render_layer[layer] = true;
+                        card.render(layer as u8 + 1, &mut cmd).unwrap();
+                    }
                 },
                 CardStatus::Rendered => {
+                    if card.ready_counter > 0 {
+                        card.ready_counter -= 1;
+                        continue;
+                    }
+                    render_layer[card.render_layer.unwrap() as usize - 1] = false; 
                     card.clean(&mut cmd).unwrap();
-                    trans.scale = Vec3::splat(1.);
                 },
-                CardStatus::Done => {
-                    let off = CARD_PADDING * i as f32 - CARD_PADDING * ((n-1) as f32 / 2.0);
-                    trans.translation = player_trans.translation + player_trans.rotation.mul_vec3(Vec3::new(off, -0.35 - off.abs() * 0.1, -1.0 - 0.01 * i as f32));
-                    trans.rotation = player_trans.rotation
-                        .mul_quat(Quat::from_rotation_y(off * 0.5))
-                        .mul_quat(Quat::from_rotation_z(-off * 0.5));
-                }
+                CardStatus::Done => ()
             }
+
+            let off = CARD_PADDING * i as f32 - CARD_PADDING * ((n-1) as f32 / 2.0);
+            trans.translation = player_trans.translation + player_trans.rotation.mul_vec3(Vec3::new(off, -0.35 - off.abs() * 0.1, -1.0 - 0.01 * i as f32));
+            trans.rotation = player_trans.rotation
+                .mul_quat(Quat::from_rotation_y(off * 0.5))
+                .mul_quat(Quat::from_rotation_z(-off * 0.5));
+        }
+
+        // TODO: DELETE Remove random card if there are more than 5
+        if n > 5 {
+            let mut it = cards.iter_mut();
+            for _ in 0..rand::thread_rng().gen_range(0..5) { it.next(); }
+            cmd.entity(it.next().unwrap().0).despawn();
         }
     }
 }

@@ -2828,7 +2828,9 @@ name = "strawbevy-jam"
 version = "0.1.0"
 dependencies = [
  "bevy",
+ "console_error_panic_hook",
  "noise",
+ "rand 0.8.5",
  "yarn-spinner",
 ]
 
