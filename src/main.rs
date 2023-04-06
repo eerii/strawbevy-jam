@@ -42,7 +42,7 @@ fn main() {
         .add_plugin(YarnPlugin)
         .add_systems(PreStartup, (res_init, dialogue::res_init))
         .add_systems(Startup, (scene_init, dialogue::box_init, dialogue::card_init))
-        .add_systems(Update, (dialogue::update, dialogue::card_update, candle_update, animation_post_init))
+        .add_systems(Update, (dialogue::update, dialogue::card_update, dialogue::pick_card_update, candle_update, animation_post_init))
         .run();
 }
 
@@ -68,15 +68,22 @@ struct PerlinNoise(Perlin);
 fn res_init(mut cmd : Commands) {
     // Perlin noise resource
     cmd.insert_resource(PerlinNoise(Perlin::new(1)));
+
+    // Player
+    cmd.spawn((
+        SpatialBundle {
+            transform : Transform::from_xyz(-5.5, 6.0, 15.0),
+            ..default()
+        },
+        Player{}
+    ));
 }
 
 // 3D Scene initalization
-fn scene_init(mut cmd : Commands, assets : Res<AssetServer>) {
-    // Main camera and player
-    cmd.spawn((
+fn scene_init(mut cmd : Commands, assets : Res<AssetServer>, player : Query<Entity, With<Player>>) {
+    // Main camera
+    let cam = cmd.spawn((
         Camera3dBundle {
-            transform : Transform::from_xyz(-6.0, 6.0, 15.0)
-                .looking_at(Vec3::new(-5.5, 3.0, 0.0), Vec3::Y),
             ..default()
         },
         FogSettings {
@@ -86,9 +93,9 @@ fn scene_init(mut cmd : Commands, assets : Res<AssetServer>) {
                 end: 35.0,
             },
             ..default()
-        },
-        Player{}
-    ));
+        }
+    )).id();
+    cmd.entity(player.single()).push_children(&[cam]);
 
     // Player point light
     cmd.spawn(

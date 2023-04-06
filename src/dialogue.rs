@@ -12,13 +12,13 @@ use bevy::{
         view::RenderLayers, camera::RenderTarget
     },
 };
-use rand::Rng;
 
 // ---
 // Constants
 
-const CARD_PADDING : f32 = 0.15;
+const CARD_PADDING : f32 = 0.16;
 const CARD_SIZE : Extent3d = Extent3d { width: 256, height: 384, depth_or_array_layers: 1 };
+const CARD_LERP_TIME : f32 = 0.2;
 #[cfg(target_arch = "wasm32")]
 const CARD_RENDER_FRAME_WAIT : u8 = 16;
 #[cfg(not(target_arch = "wasm32"))]
@@ -61,7 +61,10 @@ pub struct DialogueCard<'a> {
     camera : Option<Entity>,
     text_renderer : Option<Entity>,
     render_layer : Option<u8>,
-    ready_counter : u8
+    ready_counter : u8,
+    previous_trans : Transform,
+    target_trans : Transform,
+    lerp_time : f32,
 }
 
 impl<'a> DialogueCard<'a> {
@@ -192,18 +195,20 @@ pub fn card_init(mut cmd : Commands,
                  assets : Res<AssetServer>,
                  mut yarn : ResMut<YarnManager>,
                  mut images: ResMut<Assets<Image>>,
-                 mut materials: ResMut<Assets<StandardMaterial>>) {
+                 mut materials: ResMut<Assets<StandardMaterial>>,
+                 player : Query<Entity, With<Player>>) {
     // Load dialogue
-    yarn.load("test", &assets);
+    yarn.load("dialogue", &assets);
  
     // Create test cards
     let words = ["hey", "hi", "hello"];
     for word in words.iter() {
-        create_card(word, &mut cmd, &props, &mut images, &mut materials);
+        create_card(word, player.single(), &mut cmd, &props, &mut images, &mut materials);
     }
 }
 
 fn create_card(word : &'static str,
+               player : Entity,
                cmd : &mut Commands,
                props : &Res<Props>,
                images : &mut ResMut<Assets<Image>>,
@@ -213,15 +218,18 @@ fn create_card(word : &'static str,
     image.resize(CARD_SIZE);
     let image_handle = images.add(image);
 
-    cmd.spawn((
+    let card = cmd.spawn((
         PbrBundle {
             mesh: props.card_mesh.clone(),
             material: materials.add(StandardMaterial{base_color_texture : Some(image_handle.clone()), ..default()}),
-            transform: Transform::from_xyz(0., 0., 0.),
+            transform: Transform::from_xyz(0., -1., -1.),
             ..default()
         },
         DialogueCard::new(word, image_handle, props.card_style.clone()),
-    )).id()
+    )).id();
+
+    cmd.entity(player).push_children(&[card]);
+    card
 }
 
 // ---
@@ -277,29 +285,37 @@ pub fn update(keyboard : Res<Input<KeyCode>>,
     }
 }
 
+// Smoothstep
+fn smoothstep(x : f32, a : f32, b : f32) -> f32 {
+    let t = (x - a) / (b - a);
+    if t < 0.0 { 0.0 }
+    else if t > 1.0 { 1.0 }
+    else { t * t * (3.0 - 2.0 * t) }
+}
+
 // Updates the cards position and attributes
 pub fn card_update(mut cmd : Commands,
                    time : Res<Time>,
                    props : Res<Props>,
                    keyboard : Res<Input<KeyCode>>,
-                   mut player : Query<&mut Transform, With<Player>>,
-                   mut cards : Query<(Entity, &mut DialogueCard<'static>, &mut Transform), Without<Player>>,
+                   mut player : Query<(Entity, &mut Transform), With<Player>>,
+                   mut cards : Query<(&mut DialogueCard<'static>, &mut Transform), Without<Player>>,
                    mut images: ResMut<Assets<Image>>,
                    mut materials: ResMut<Assets<StandardMaterial>>,
                    mut render_layer : Local<[bool;4]>) {
     // Obtain the player transformation
-    if let Ok(mut player_trans) = player.get_single_mut() {
+    if let Ok((player_entity, mut player_trans)) = player.get_single_mut() {
         //TODO: Delete this
-        *player_trans = player_trans.looking_at(Vec3::new(-5.5 + time.elapsed_seconds().sin() * 0.2, 3.0, 0.0), Vec3::Y); 
+        *player_trans = player_trans.looking_at(player_trans.translation + Vec3::new(time.elapsed_seconds().sin() * 0.02, -0.2, -1.), Vec3::Y);
 
         // TODO: DELETE Press x to spawn a card
         if keyboard.just_pressed(KeyCode::X) {
-            create_card("x", &mut cmd, &props, &mut images, &mut materials);
+            create_card("x", player_entity, &mut cmd, &props, &mut images, &mut materials);
         }
 
         // Update the cards
         let n = cards.iter().count();
-        for (i, (_, mut card, mut trans)) in cards.iter_mut().enumerate() {
+        for (i, (mut card, mut trans)) in cards.iter_mut().enumerate() {
             match card.status {
                 CardStatus::Empty => {
                     // Get first available render layer
@@ -308,6 +324,8 @@ pub fn card_update(mut cmd : Commands,
                         render_layer[layer] = true;
                         card.render(layer as u8 + 1, &mut cmd).unwrap();
                     }
+                    card.previous_trans = *trans;
+                    card.lerp_time = 0.;
                 },
                 CardStatus::Rendered => {
                     if card.ready_counter > 0 {
@@ -320,18 +338,40 @@ pub fn card_update(mut cmd : Commands,
                 CardStatus::Done => ()
             }
 
-            let off = CARD_PADDING * i as f32 - CARD_PADDING * ((n-1) as f32 / 2.0);
-            trans.translation = player_trans.translation + player_trans.rotation.mul_vec3(Vec3::new(off, -0.35 - off.abs() * 0.1, -1.0 - 0.01 * i as f32));
-            trans.rotation = player_trans.rotation
-                .mul_quat(Quat::from_rotation_y(off * 0.5))
-                .mul_quat(Quat::from_rotation_z(-off * 0.5));
-        }
+            let offset = i as f32 - (n as f32 - 1.) / 2.;
+            card.target_trans.translation = Vec3::new(
+                offset * CARD_PADDING.min(0.25 * 2.0 / n as f32),
+                -0.35 + (i as f32 / (n-1) as f32 * std::f32::consts::PI).sin() * 0.02,
+                -1. + i as f32 * 0.02 / n as f32
+            );
+            card.target_trans.rotation = Quat::from_rotation_z(offset * -0.3 / n as f32)
+                .mul_quat(Quat::from_rotation_y(-offset * 0.05 / n as f32));
 
-        // TODO: DELETE Remove random card if there are more than 5
-        if n > 5 {
-            let mut it = cards.iter_mut();
-            for _ in 0..rand::thread_rng().gen_range(0..5) { it.next(); }
-            cmd.entity(it.next().unwrap().0).despawn();
+            // Check if rotations are equal
+            if (trans.translation - card.target_trans.translation).length() < 0.01 && trans.rotation.dot(card.target_trans.rotation) > 0.99 {
+                *trans = card.target_trans;
+                card.previous_trans = card.target_trans;
+                card.lerp_time = 0.;
+            }
+            if card.previous_trans != card.target_trans {
+                card.lerp_time += time.delta_seconds();
+                card.lerp_time = card.lerp_time.min(CARD_LERP_TIME);
+                trans.translation = card.previous_trans.translation.lerp(card.target_trans.translation, smoothstep(card.lerp_time, 0., CARD_LERP_TIME));
+                trans.rotation = card.previous_trans.rotation.lerp(card.target_trans.rotation, smoothstep(card.lerp_time, 0., CARD_LERP_TIME));
+            }
         }
+    }
+}
+
+// Pick cards using a mouse raycaster
+pub fn pick_card_update(cam : Query<(&Camera, &GlobalTransform), With<Camera3d>>,
+                        mut cards : Query<&mut DialogueCard<'static>>,
+                        window: Query<&Window>) {
+    let (cam, cam_trans) = cam.single();
+    let Some(mouse_pos) = window.single().cursor_position() else { return; };
+    let Some(ray) = cam.viewport_to_world(cam_trans, mouse_pos) else { return; };
+
+    for mut card in cards.iter_mut() {
+            
     }
 }

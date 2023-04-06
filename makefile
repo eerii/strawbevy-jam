@@ -1,5 +1,5 @@
 DLG_DIR=assets/dialogue
-DLG_NAME=test
+DLG_NAME=dialogue
 DLG_OUT=$(DLG_DIR)/build/$(DLG_NAME).yarnc
 
 run: $(DLG_OUT)

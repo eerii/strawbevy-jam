@@ -7,6 +7,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 bevy = { git = "https://github.com/bevyengine/bevy", rev = "f0f5d79" }
 yarn-spinner = { git = "https://github.com/sanbox-irl/yarn-spinner" }
+bevy_mod_raycast = "0.8"
 console_error_panic_hook = "0.1"
 noise = "0.8"
 rand = "0.8"

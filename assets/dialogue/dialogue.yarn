@@ -1,0 +1,105 @@
+title: Start
+---
+<<set $alcohol to 0>>
+<<set $anxiety to 1>>
+Remie: Hey! I-it's been a while.
+Player: Yeah, thank you for coming on ___.
+-> this rainy day
+  <<set $weather to "rainy">>
+-> this sunny day
+  <<set $weather to "sunny">> 
+Remie: Oh no, please, thank you, I hope my invitation didn't bother you. 
+Player: Not at all! I thank it. Anyways, it seems like they'r having a ___ 
+-> Busy day.
+  << set $work to 2>>
+  <<set $anxiety to $anxiety + 1>>
+  Remie: Yeah! We definetly weren't their only clients.
+  <<jump BusyDay>>
+-> Calm day.
+  Remie: Yeah, thank God! This place can be really annoying sometimes.
+  <<jump WaitressOnTime>>
+-> Other 
+===
+
+title: BusyDay
+---
+Remie: Marco's gonna take a while...
+Player: Wait, is Marco still the waitress?
+Remie: Of course he is! He's the best, can't be fired. 
+Player: Haha I suppose that's true. 
+Remie: Seems like you don't come round here often. 
+Player: Well, not really. I'm not in ___
+-> A good momment. 
+  Remie: Oh, did something happend? 
+  Player: I don't wanna talk about that right now, sorry. 
+  Remie: Don't be sorry. Is there something I can do to make you feel confortable?
+  Player: Don't worry, I'm ok. 
+  Remie: You know what? Now we are on this table, there`s something that cheer me up in a strange way always
+-> The old days. 
+  <<set $anxiety to $anxiety + 1>>
+  Remie: W-well, I thouth you like the old days.
+  Player: I used to, yeah, butthey'r in the past. 
+  Remie: And don't you wanna remember the past? 
+  Player: is that why you invited me here? To remember the old days? 
+  Remie: Ahm not really...
+Remie: I have the picture. 
+Player: Wait, the crooked picture?
+<<jump CrookedPicture>>>
+===
+
+title: WaitressOnTime
+---
+Waitress: Hey, guys, having ya both back is great! I see Remie a lot, but Nico, long time no see. Ya gotta catch me up later. By now, ya want something?
+Remie: Hey, Marco! YOU have to update us, I want to know everything on this new person of you. 
+Remie: Nico, are you having the same as always?
+Player: I'm having ___
+-> An orange juice
+  Remie: An orange juice? That's new.
+  <<jump OrangeJuice>>
+-> A beer
+  Remie: Back to the old days...
+  <<set $alcohol to 1>>
+  <<jump Beer>>
+-> Other
+===
+
+title: OrangeJuice
+---
+Remie: I want the same! I have an obsession with orange juice. 
+Waitres: Two orange juice's glasses then! I'm defenitly talking with ya both as soon as I can. 
+Player: Please Marco!
+Player: So... An obsession with orange juice? 
+Remie: Yep! Somehow this drink really relax me. 
+Player: Ouh what ___!
+-> A weirdo.
+-> A coincidence. 
+  Remie: Same with you? 
+===
+
+title: Beer
+---
+Remie: I'm having an orange juice, Marco, please. 
+Waitress: So, an orange juice, a beer and some tea I gotta spill.
+Remie: So, we really are on the same as two years ago. 
+Player: Well, we'r even on the same table.
+Remi: OF COURSE! I love this table. Do you remember the game days? 
+Player: Yes I do! And the ___ 
+->  Argue days
+  <<set $anxiety to $anxiety + 1>>
+  Remie: Those days... I suppose we could be really stubobrn.
+->  Group days
+  Remie: SHUT UP. Those really were funny days. 
+-> Other 
+Player: It seems like a ___ ago
+-> Long time. 
+  <<set $anxiety to $anxiety + 1>>
+-> Little while
+  <<set $anxiety to $anxiety - 1>>
+Remie: Does it? For me is an everyday thing, after all, I see that picture evry morning.
+Player: Wait, the crooked picture?
+<<jump CrookedPicture>>
+===
+
+title: CrookedPicture
+---
+===
