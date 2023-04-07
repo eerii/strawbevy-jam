@@ -5,8 +5,9 @@
 // - Tomar cartas (basado en opciones del script)
 // - Jugar las cartas
 // - Menú de opciones y pantalla de cartas
-// - Integración con fmod
+// - Música
 // - Dibujar mejores texturas
+// - Load asset screen and main menu
 // - Efectos especiales, polish, etc...
 
 mod yarn;

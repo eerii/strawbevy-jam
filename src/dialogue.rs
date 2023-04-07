@@ -4,6 +4,7 @@ use super::{
     Player,
     yarn::*
 };
+use std::collections::HashMap;
 use bevy::{
     prelude::*,
     core_pipeline::clear_color::ClearColorConfig,
@@ -17,7 +18,8 @@ use bevy::{
 // Constants
 
 const CARD_PADDING : f32 = 0.16;
-const CARD_SIZE : Extent3d = Extent3d { width: 256, height: 384, depth_or_array_layers: 1 };
+const CARD_TEX_SIZE : Extent3d = Extent3d { width: 256, height: 384, depth_or_array_layers: 1 };
+const CARD_MESH_SIZE : Vec2 = Vec2::new(0.2, 0.3);
 const CARD_LERP_TIME : f32 = 0.2;
 #[cfg(target_arch = "wasm32")]
 const CARD_RENDER_FRAME_WAIT : u8 = 16;
@@ -33,6 +35,12 @@ pub struct Props {
     box_style : TextStyle,
     card_style : TextStyle,
     card_texture_descriptor : TextureDescriptor<'static>,
+}
+
+#[derive(Resource, Default)]
+pub struct State {
+    selected_card : Option<Entity>,
+    previous_card : Option<Entity>
 }
 
 // ---
@@ -53,9 +61,9 @@ enum CardStatus {
 struct CardRenderError;
 
 #[derive(Component, Default, Debug)]
-pub struct DialogueCard<'a> {
+pub struct DialogueCard {
     status : CardStatus,
-    text : &'a str,
+    text : String,
     image : Handle<Image>,
     style : TextStyle,
     camera : Option<Entity>,
@@ -67,8 +75,8 @@ pub struct DialogueCard<'a> {
     lerp_time : f32,
 }
 
-impl<'a> DialogueCard<'a> {
-    fn new(text : &'a str, image : Handle<Image>, style : TextStyle) -> DialogueCard<'a> {
+impl DialogueCard {
+    fn new(text : String, image : Handle<Image>, style : TextStyle) -> DialogueCard {
         DialogueCard { text, image, style, ..default() }
     }
 
@@ -92,7 +100,7 @@ impl<'a> DialogueCard<'a> {
         // Create image text
         self.text_renderer = Some(cmd.spawn((
             Text2dBundle {
-                text : Text::from_section(self.text, self.style.clone()),
+                text : Text::from_section(&self.text, self.style.clone()),
                 transform : Transform::from_xyz(0.0, 0.0, 0.0),
                 ..default()
             },
@@ -130,7 +138,7 @@ pub fn res_init(mut cmd : Commands,
                 assets : Res<AssetServer>,
                 mut meshes: ResMut<Assets<Mesh>>) {
     // Create plane mesh
-    let card_mesh = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(0.2, 0.3))));
+    let card_mesh = meshes.add(Mesh::from(shape::Quad::new(CARD_MESH_SIZE)));
 
     // Dialogue text styles
     let font = assets.load("fonts/dogicabold.ttf");
@@ -148,7 +156,7 @@ pub fn res_init(mut cmd : Commands,
     // Card texture properties
     let card_texture_descriptor = TextureDescriptor {
         label: None,
-        size: CARD_SIZE,
+        size: CARD_TEX_SIZE,
         dimension: TextureDimension::D2,
         format: TextureFormat::R8Unorm,
         mip_level_count: 1,
@@ -161,6 +169,7 @@ pub fn res_init(mut cmd : Commands,
 
     // Save state
     cmd.insert_resource(Props { card_mesh, box_style, card_style, card_texture_descriptor });
+    cmd.insert_resource(State::default());
 }
 
 // Dialogue box initialization
@@ -215,7 +224,7 @@ fn create_card(word : &'static str,
                materials: &mut ResMut<Assets<StandardMaterial>>) -> Entity { 
     // Create dialogue card
     let mut image = Image { texture_descriptor : props.card_texture_descriptor.clone(), ..default() };
-    image.resize(CARD_SIZE);
+    image.resize(CARD_TEX_SIZE);
     let image_handle = images.add(image);
 
     let card = cmd.spawn((
@@ -225,7 +234,7 @@ fn create_card(word : &'static str,
             transform: Transform::from_xyz(0., -1., -1.),
             ..default()
         },
-        DialogueCard::new(word, image_handle, props.card_style.clone()),
+        DialogueCard::new(word.to_string(), image_handle, props.card_style.clone()),
     )).id();
 
     cmd.entity(player).push_children(&[card]);
@@ -299,9 +308,10 @@ pub fn card_update(mut cmd : Commands,
                    props : Res<Props>,
                    keyboard : Res<Input<KeyCode>>,
                    mut player : Query<(Entity, &mut Transform), With<Player>>,
-                   mut cards : Query<(&mut DialogueCard<'static>, &mut Transform), Without<Player>>,
+                   mut cards : Query<(Entity, &mut DialogueCard, &mut Transform), Without<Player>>,
                    mut images: ResMut<Assets<Image>>,
                    mut materials: ResMut<Assets<StandardMaterial>>,
+                   mut state : ResMut<State>,
                    mut render_layer : Local<[bool;4]>) {
     // Obtain the player transformation
     if let Ok((player_entity, mut player_trans)) = player.get_single_mut() {
@@ -315,7 +325,7 @@ pub fn card_update(mut cmd : Commands,
 
         // Update the cards
         let n = cards.iter().count();
-        for (i, (mut card, mut trans)) in cards.iter_mut().enumerate() {
+        for (i, (e, mut card, mut trans)) in cards.iter_mut().enumerate() {
             match card.status {
                 CardStatus::Empty => {
                     // Get first available render layer
@@ -347,13 +357,22 @@ pub fn card_update(mut cmd : Commands,
             card.target_trans.rotation = Quat::from_rotation_z(offset * -0.3 / n as f32)
                 .mul_quat(Quat::from_rotation_y(-offset * 0.05 / n as f32));
 
-            // Check if rotations are equal
-            if (trans.translation - card.target_trans.translation).length() < 0.01 && trans.rotation.dot(card.target_trans.rotation) > 0.99 {
+            if state.selected_card.is_some() && state.selected_card.unwrap() == e {
+                card.target_trans.translation += Vec3::new(0., 0.1, 0.);
+                if state.previous_card.is_none() || state.previous_card.unwrap() != e {
+                    state.previous_card = Some(e);
+                    card.previous_trans = *trans;
+                    card.lerp_time = 0.;
+                }
+            }
+
+            if (trans.translation - card.target_trans.translation).length() < 0.01 {
                 *trans = card.target_trans;
                 card.previous_trans = card.target_trans;
                 card.lerp_time = 0.;
             }
-            if card.previous_trans != card.target_trans {
+
+            if card.target_trans != card.previous_trans {
                 card.lerp_time += time.delta_seconds();
                 card.lerp_time = card.lerp_time.min(CARD_LERP_TIME);
                 trans.translation = card.previous_trans.translation.lerp(card.target_trans.translation, smoothstep(card.lerp_time, 0., CARD_LERP_TIME));
@@ -363,15 +382,52 @@ pub fn card_update(mut cmd : Commands,
     }
 }
 
+fn intersect(plane_center : Vec3, plane_normal : Vec3,
+             view_pos : Vec3, view_dir : Vec3) -> Option<(f32, Vec3)> {
+    if view_dir.dot(plane_normal) == 0. { 
+        return None;
+    }
+    
+    let d = (plane_center - view_pos).dot(plane_normal) / view_dir.dot(plane_normal);
+    let p = view_pos + view_dir * d;
+    Some((d, p))
+}
+
 // Pick cards using a mouse raycaster
-pub fn pick_card_update(cam : Query<(&Camera, &GlobalTransform), With<Camera3d>>,
-                        mut cards : Query<&mut DialogueCard<'static>>,
-                        window: Query<&Window>) {
+pub fn pick_card_update(mut state : ResMut<State>,
+                        cam : Query<(&Camera, &GlobalTransform), With<Camera3d>>,
+                        cards : Query<(Entity, &GlobalTransform), With<DialogueCard>>,
+                        window : Query<&Window>) {
+    // Get the mouse world position
     let (cam, cam_trans) = cam.single();
     let Some(mouse_pos) = window.single().cursor_position() else { return; };
     let Some(ray) = cam.viewport_to_world(cam_trans, mouse_pos) else { return; };
 
-    for mut card in cards.iter_mut() {
-            
+    // Iterate through all the cards to find out which of them are being hovered
+    let mut cards_hovered = HashMap::new();
+    for (e, trans) in cards.iter() {
+        let (_, r, t) = trans.to_scale_rotation_translation();
+        let normal = r.mul_vec3(Vec3::Z);
+
+        // Create intersection
+        let Some((_, point)) = intersect(t, normal, ray.origin, ray.direction) else { continue; };
+
+        // Check if the point is the the card mesh bounds
+        let card_bounds = Vec3::from((CARD_MESH_SIZE * 0.5, 0.));
+        let point = point - t;
+        if point.x.abs() > card_bounds.x || point.y.abs() > card_bounds.y { continue; }
+
+        // Add to a list of hovered cards
+        cards_hovered.insert(e, (point - card_bounds).length());
+    }
+
+    // Find the closest hovered card (or the previous card)
+    if let Some((e, _)) = cards_hovered.iter().find(|(e, _)| state.previous_card.is_some() && state.previous_card.unwrap() == **e) {
+        state.selected_card = Some(*e);
+    } else if let Some((e, _)) = cards_hovered.iter().min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap()) {
+        state.selected_card = Some(*e);
+    } else {
+        state.selected_card = None;
+        state.previous_card = None;
     }
 }
