@@ -1,105 +1,166 @@
 title: Start
 ---
+// Variables
+<<set $anxiety to 0>>
+<<set $nonsense to 0>>
 <<set $alcohol to 0>>
-<<set $anxiety to 1>>
+<<set $busy_work to false>>
+// Start
 Remie: Hey! I-it's been a while.
-Player: Yeah, thank you for coming on ___.
--> this rainy day
+Player: Yeah, thanks for coming on ___.
+-> (this) rainy day // We are going to use parentheses to indicate parts that can change between questions
   <<set $weather to "rainy">>
--> this sunny day
+-> (this) sunny day
   <<set $weather to "sunny">> 
-Remie: Oh no, please, thank you, I hope my invitation didn't bother you. 
-Player: Not at all! I thank it. Anyways, it seems like they'r having a ___ 
--> Busy day.
-  << set $work to 2>>
+// No need for other
+Remie: Oh please, thank [happy]you[/happy]. I hope hearing from me wasn't a bother. 
+Player: Not at all! I was really excited to see you again.
+Player: Hmm... it seems like they're having ___.
+-> (a) busy day
+  <<set $busy_work to true>>
   <<set $anxiety to $anxiety + 1>>
-  Remie: Yeah! We definetly weren't their only clients.
+  Remie: Yeah, we weren't the only ones to think to have a drink today.
   <<jump BusyDay>>
--> Calm day.
-  Remie: Yeah, thank God! This place can be really annoying sometimes.
+-> (a) calm day
+  Remie: Yeah, thank goodness! This place can get really [anxious]crowded[/anxious] sometimes.
   <<jump WaitressOnTime>>
--> Other 
+-> (a) rainy day // Same as a busy day
+  <<set $busy_work to true>>
+  <<set $anxiety to $anxiety + 1>>
+  Remie: I mean, that's one way to put it, right?
+  <<jump BusyDay>>
+-> (a) sunny day // Same as a calm day
+  Remie: Yeah, it feels so [happy]calm[/happy] in here, specially with all the rain pouring outside.
+  <<jump WaiterComes>>
+// No need for other
 ===
 
 title: BusyDay
 ---
-Remie: Marco's gonna take a while...
-Player: Wait, is Marco still the waitress?
-Remie: Of course he is! He's the best, can't be fired. 
-Player: Haha I suppose that's true. 
+Remie: Marco's going to take a while...
+Player: Wait, is Marco still the waiter?
+Remie: Of course he is! He's the [proud]best[/proud], can't get fired. 
+Player: Haha I suppose that's true.
 Remie: Seems like you don't come round here often. 
-Player: Well, not really. I'm not in ___
--> A good momment. 
-  Remie: Oh, did something happend? 
-  Player: I don't wanna talk about that right now, sorry. 
-  Remie: Don't be sorry. Is there something I can do to make you feel confortable?
-  Player: Don't worry, I'm ok. 
-  Remie: You know what? Now we are on this table, there`s something that cheer me up in a strange way always
--> The old days. 
+Player: Well, not really. It's not ___.
+-> (a) good momment | (a) sunny day // We can use | to say that two options lead to exactly the same result
+  Remie: Oh, did something happen?
+  Player: [anxious]I...[/anxious] I just don't wanna talk about that right now, sorry. 
+  Remie: Don't be sorry. Is there something I can do to make you feel [happy]confortable[/happy]?
+  Player: Don't worry, it's fine. I'm fine. 
+  Remie: Ok...
+  Remie: You know what? This table made me remember something that always cheers me up.
+-> (the) old days
   <<set $anxiety to $anxiety + 1>>
-  Remie: W-well, I thouth you like the old days.
-  Player: I used to, yeah, butthey'r in the past. 
-  Remie: And don't you wanna remember the past? 
-  Player: is that why you invited me here? To remember the old days? 
-  Remie: Ahm not really...
-Remie: I have the picture. 
+  Remie: [anxious]W-well[/anxious], I thougth you liked the old days.
+  Player: I used to, yeah... but they're in the past. 
+  Remie: And you don't want to remember the past?
+  Player: Is that why you invited me here? To dwell on ancient times? 
+  Remie: Ahm... not really...
+-> other
+  <<set $nonsense to $nonsense + 1>>
+  Remie: I don't think I quite get what you mean. Anyways...
+Remie: I have [proud]the picture[/proud]. 
 Player: Wait, the crooked picture?
-<<jump CrookedPicture>>>
+<<jump CrookedPicture>>
 ===
 
-title: WaitressOnTime
+title: WaiterComes
 ---
-Waitress: Hey, guys, having ya both back is great! I see Remie a lot, but Nico, long time no see. Ya gotta catch me up later. By now, ya want something?
-Remie: Hey, Marco! YOU have to update us, I want to know everything on this new person of you. 
+Waiter: Hey guys, having ya both back is great!
+Waiter: Remie I'm used to seeing, but Nico, long time no see. Ya gotta catch me up later.
+Remie: Hey, Marco! [happy]You[/happy] need to tell me all about this new person you're seeing.
+<<if $busy_day>>
+  Waiter: Oh, I'll tell you in a while hon, that's if I'm alive after tending all these tables.
+  Waiter: Anyways, can I get ya something to drink?
+<<else>>
+  Waiter: Oh, just ya wait, you're in for a treat. But first, can I get ya something to drink?
+<<endif>>
 Remie: Nico, are you having the same as always?
-Player: I'm having ___
--> An orange juice
+Player: I guess I'll have ___
+-> (an) orange juice
   Remie: An orange juice? That's new.
+  <<set $drink to "orangejuice">>
   <<jump OrangeJuice>>
--> A beer
+-> (a) beer
   Remie: Back to the old days...
   <<set $alcohol to 1>>
-  <<jump Beer>>
--> Other
+  <<set $drink to "beer">>
+-> (a) good moment
+  Remie: So that's a beer, am I right?
+  Player: You know me too well.
+  <<set $alcohol to 1>>
+  <<set $drink to "beer">>
+-> (a) rainy day
+  Remie: Well, I guess it's a beer then.
+  <<set $alcohol to 1>>
+  <<set $drink to "beer">>
+-> other
+  <<set $nonsense to $nonsense + 1>>
+  Remie: You always have the weirdest drinks.
+  <<set $drink to "weird">>
+<<jump OtherDrink>>
 ===
 
 title: OrangeJuice
 ---
-Remie: I want the same! I have an obsession with orange juice. 
-Waitres: Two orange juice's glasses then! I'm defenitly talking with ya both as soon as I can. 
-Player: Please Marco!
+Remie: I'm having the same! I have developed a recent obsession with [happy]orange juice[/happy]. 
+Waiter: Two orange juices right up! I'm defenitly sitting with both of ya as soon as I can. 
+Player: Please do!
+<<wait 1>> // Wait for a bit
 Player: So... An obsession with orange juice? 
-Remie: Yep! Somehow this drink really relax me. 
-Player: Ouh what ___!
--> A weirdo.
--> A coincidence. 
-  Remie: Same with you? 
+Remie: Yep! Somehow this drink always puts me at ease. 
+Player: Oh, what ___!
+-> (a) weirdo
+-> (a) coincidence
+  Remie: Same for you?
+-> other
 ===
 
-title: Beer
+title: OtherDrink
 ---
-Remie: I'm having an orange juice, Marco, please. 
-Waitress: So, an orange juice, a beer and some tea I gotta spill.
-Remie: So, we really are on the same as two years ago. 
-Player: Well, we'r even on the same table.
-Remi: OF COURSE! I love this table. Do you remember the game days? 
-Player: Yes I do! And the ___ 
-->  Argue days
+Remie: I'm having an orange juice Marco, thanks. 
+Waiter: So, an orange juice, [select beer="a beer" weird="an... imma bring you a glass of water"], and some tea I gotta spill.
+Waiter: Be right back!
+<<wait 1>>
+Remie: So, we really are on the same bar as two years ago. 
+Player: Well, we're even on the same table.
+Remi: [happy]Of course![/happy] I love this table. Do you remember our game nights? 
+Player: Yes I do! And ___ 
+-> (the) hour long arguments
   <<set $anxiety to $anxiety + 1>>
-  Remie: Those days... I suppose we could be really stubobrn.
-->  Group days
-  Remie: SHUT UP. Those really were funny days. 
--> Other 
-Player: It seems like a ___ ago
--> Long time. 
-  <<set $anxiety to $anxiety + 1>>
--> Little while
+  Remie: Those... I guess we can get really stubobrn.
+-> (the) band performances
+  Remie: Shut up! Those really were so funny.
+-> (the) good moment(s)
+  Remie: Yeah, we got plenty of those, didn't we?
   <<set $anxiety to $anxiety - 1>>
-Remie: Does it? For me is an everyday thing, after all, I see that picture evry morning.
+-> (the) busy day(s) | (the) calm day(s) | (the) rainy day(s) | (the) sunny day(s)
+  Remie: Those were the days, huh?
+-> other
+  <<set $nonsense to $nonsense + 1>>
+  Remie: I'm having a hard time remembering that.
+Player: It seems like ___ ago
+-> (a) long time
+  <<set $anxiety to $anxiety + 1>>
+  Remie: Does it? For me is an everyday thing, after all, I see that picture every morning.
+-> (a) little while
+  <<set $anxiety to $anxiety - 1>>
+  Remie: Does it? For me is an everyday thing, after all, I see that picture every morning.
+-> hour long arguments
+  <<set $anxiety to $anxiety + 1>>
+  Remie: I guess you can measure time in arguments. We didn't have a shortage of them.
+  Remie: Every time I look at that picture I can't help but remembering everything.
+-> other
+  <<set $nonsense to $nonsense + 1>>
+  Remie: You are so weird.
+  Remie: Here, I have the picture.
 Player: Wait, the crooked picture?
 <<jump CrookedPicture>>
 ===
 
 title: CrookedPicture
 ---
+<<discard>> // Make the player discard their cards when entering a new scene
+Remie: ...
 ===
