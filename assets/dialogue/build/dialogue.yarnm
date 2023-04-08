@@ -1,8 +1,15 @@
 id,node,lineNumber,tags
-line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-Start-1,Start,12,lastline
-line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-Start-6,Start,20,lastline
-line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-BusyDay-20,BusyDay,47,lastline
-line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-WaiterComes-49,WaiterComes,88,lastline
-line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-OrangeJuice-66,OrangeJuice,121,lastline
-line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-OtherDrink-88,OtherDrink,154,lastline
-line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-OtherDrink-99,OtherDrink,168,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-Start-1,Start,21,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-Start-6,Start,29,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-BusyDay-20,BusyDay,57,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-WaiterComes-46,WaiterComes,93,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-OrangeJuice-63,OrangeJuice,127,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-OtherDrink-84,OtherDrink,160,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-OtherDrink-95,OtherDrink,174,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-TalkAboutNico-108,TalkAboutNico,208,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-NicoDepressed-119,NicoDepressed,226,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-TalkAboutRemie-135,TalkAboutRemie,248,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-LookDeadname-154,LookDeadname,281,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-BusyDayRemie-161,BusyDayRemie,301,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-BusyDayMario-175,BusyDayMario,322,lastline
+line:/Users/jose/Library/Mobile Documents/com~apple~CloudDocs/Programacion/Game Jams/Strawbevy Jam 2023/strawbevy-jam/assets/dialogue/dialogue.yarn-BusyDaySamePlace-189,BusyDaySamePlace,342,lastline

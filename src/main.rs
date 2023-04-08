@@ -2,7 +2,7 @@
 
 // TODO:
 // - Tomar cartas (basado en opciones del script)
-// - Jugar las cartas
+// - ANIMACION REMIE
 // - Menú de opciones y pantalla de cartas
 // - Música
 // - Dibujar mejores texturas

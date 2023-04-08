@@ -22,20 +22,20 @@ const CARD_PADDING : f32 = 0.18;
 const CARD_TEX_SIZE : Extent3d = Extent3d { width: 256, height: 320, depth_or_array_layers: 1 };
 const CARD_MESH_SIZE : Vec2 = Vec2::new(0.2, 0.25);
 const CARD_LERP_TIME : f32 = 0.2;
-const CARD_FONT_SIZE : f32 = 30.;
+const CARD_FONT_SIZE : f32 = 24.;
 
-#[cfg(target_arch = "wasm32")]
-const CARD_RENDER_FRAME_WAIT : u8 = 16;
-#[cfg(not(target_arch = "wasm32"))]
-const CARD_RENDER_FRAME_WAIT : u8 = 4;
+const DIALOGUE_TEX_SIZE : Extent3d = Extent3d { width: 768, height: 192, depth_or_array_layers: 1 };
+const DIALOGUE_MESH_SIZE : Vec2 = Vec2::new(6.0, 1.5);
 
 // ---
 // Resources
 
 #[derive(Resource)]
 pub struct Props {
-    card_mesh : Handle<Mesh>,
+    box_mesh : Handle<Mesh>,
     box_style : TextStyle,
+    box_background : Handle<Image>,
+    card_mesh : Handle<Mesh>,
     card_style : TextStyle,
     card_texture_descriptor : TextureDescriptor<'static>,
     card_background : Handle<Image>,
@@ -54,28 +54,13 @@ pub struct State {
 #[derive(Component)]
 pub struct DialogueBox;
 
-#[derive(Default, Debug)]
-enum CardStatus {
-    #[default]
-    Empty,
-    Rendered,
-    Done
-}
-
-#[derive(Debug)]
-struct CardRenderError;
-
 #[derive(Component, Default, Debug)]
 pub struct DialogueCard {
-    status : CardStatus,
     text : String,
+    has_renderer : bool,
     image : Handle<Image>,
     style : TextStyle,
-    camera : Option<Entity>,
-    text_renderer : Option<Entity>,
-    sprite_renderer : Option<Entity>,
     render_layer : Option<u8>,
-    ready_counter : u8,
     previous_trans : Transform,
     target_trans : Transform,
     lerp_time : f32,
@@ -86,12 +71,10 @@ impl DialogueCard {
         DialogueCard { text, image, style, ..default() }
     }
 
-    fn render(&mut self, render_layer : u8, cmd : &mut Commands, props : &Res<Props>) -> Result<(), CardRenderError> {
-        if let CardStatus::Rendered = self.status { return Err(CardRenderError) };
-
-        let text_pass_layer = RenderLayers::layer(render_layer);
+    fn render(&mut self, render_layer : u8, cmd : &mut Commands, props : &Res<Props>) {
         // Camera to render the 2d text onto the card image
-        self.camera = Some(cmd.spawn((
+        let text_pass_layer = RenderLayers::layer(render_layer);
+        cmd.spawn((
             Camera2dBundle {
                 camera: Camera {
                     order: -1,
@@ -101,7 +84,7 @@ impl DialogueCard {
                 ..default()
             },
             text_pass_layer
-        )).id());
+        ));
 
         // Use rusttype to get the text width
         // There is a weird bug where if the text wraps it is not centered
@@ -113,7 +96,7 @@ impl DialogueCard {
             .unwrap_or(0.0);
 
         // Create image text
-        self.text_renderer = Some(cmd.spawn((
+        cmd.spawn((
             Text2dBundle {
                 text : Text::from_section(&self.text, self.style.clone()).with_alignment(TextAlignment::Center),
                 text_2d_bounds : Text2dBounds{ size : Vec2::new(CARD_TEX_SIZE.width as f32 - 48., CARD_TEX_SIZE.height as f32 - 32.) },
@@ -121,38 +104,19 @@ impl DialogueCard {
                 ..default()
             },
             text_pass_layer
-        )).id());
+        ));
 
         // Create card background sprite
-        self.sprite_renderer = Some(cmd.spawn((
+        cmd.spawn((
             SpriteBundle {
                 texture : props.card_background.clone(),
                 transform : Transform::from_scale(Vec3::splat(8.)),
                 ..default()
             },
             text_pass_layer
-        )).id());
+        ));
 
-        self.status = CardStatus::Rendered;
         self.render_layer = Some(render_layer);
-        self.ready_counter = CARD_RENDER_FRAME_WAIT;
-        Ok(())
-    }
-
-    fn clean(&mut self, cmd : &mut Commands) -> Result<(), CardRenderError> {
-        let CardStatus::Rendered = self.status else { return Err(CardRenderError) };
-
-        // Now that the card has been rendered, delete the camera and text renderer
-        if let Some(camera) = self.camera {
-            cmd.entity(camera).despawn_recursive();
-        }
-        if let Some(text_renderer) = self.text_renderer {
-            cmd.entity(text_renderer).despawn_recursive();
-        }
-
-        self.status = CardStatus::Done;
-        self.render_layer = None;
-        Ok(())
     }
 }
 
@@ -166,9 +130,10 @@ pub fn res_init(mut cmd : Commands,
                 mut meshes: ResMut<Assets<Mesh>>) {
     // Create plane mesh
     let card_mesh = meshes.add(Mesh::from(shape::Quad::new(CARD_MESH_SIZE)));
+    let box_mesh = meshes.add(Mesh::from(shape::Quad::new(DIALOGUE_MESH_SIZE)));
 
     // Fonts (Bevy and rusttype)
-    let font_data = include_bytes!("../assets/fonts/alagard.ttf");
+    let font_data = include_bytes!("../assets/fonts/ponderosa.ttf");
     let font = fonts.add(Font::try_from_bytes(font_data.to_vec()).expect("Failed to load font"));
     let rt_font = rusttype::Font::try_from_bytes(font_data).expect("Failed to load font");
 
@@ -198,42 +163,76 @@ pub fn res_init(mut cmd : Commands,
         view_formats: &[TextureFormat::Rgba8Unorm],
     };
 
-    // Card background
+    // Background images
+    let box_background = assets.load("textures/dialogue.png");
     let card_background = assets.load("textures/card.png");
 
     // Save state
-    cmd.insert_resource(Props { card_mesh, box_style, card_style,
-                                card_texture_descriptor, card_background,
-                                rt_font });
+    cmd.insert_resource(Props { box_mesh, box_style, box_background,
+                                card_mesh, card_style, card_texture_descriptor, card_background, rt_font });
 
     cmd.insert_resource(State::default());
 }
 
 // Dialogue box initialization
-pub fn box_init(mut cmd : Commands, props : Res<Props>) { 
+pub fn box_init(mut cmd : Commands,
+                props : Res<Props>,
+                mut images : ResMut<Assets<Image>>,
+                mut materials : ResMut<Assets<StandardMaterial>>) {
+    // Create dialogue image
+    let mut image = Image { texture_descriptor : props.card_texture_descriptor.clone(), ..default() };
+    image.resize(DIALOGUE_TEX_SIZE);
+    let image_handle = images.add(image);
+
     // Dialogue text camera
-    cmd.spawn(
+    let box_pass_layer = RenderLayers::layer(1);
+    cmd.spawn((
         Camera2dBundle{
             camera_2d: Camera2d {
                 clear_color: ClearColorConfig::None
             },
             camera: Camera {
-                order: 1,
+                order: -2,
+                target: RenderTarget::Image(image_handle.clone()),
                 ..default()
             },
             ..default()
-        }
-    ); 
+        },
+        box_pass_layer
+    )); 
 
     // Dialogue box
     cmd.spawn((
         Text2dBundle {
             text : Text::from_section("", props.box_style.clone()),
-            transform : Transform::from_xyz(0.0, 250.0, 0.0),
+            transform : Transform::from_xyz(0.0, 0.0, 0.1),
             ..default()
         },
-        DialogueBox{}
+        DialogueBox{},
+        box_pass_layer
     ));
+    cmd.spawn((
+        SpriteBundle {
+            texture : props.box_background.clone(),
+            transform : Transform::from_scale(Vec3::splat(8.)),
+            ..default()
+        },
+        box_pass_layer
+    ));
+
+    // Actual mesh in the 3d camera
+    cmd.spawn(
+        PbrBundle {
+            mesh: props.box_mesh.clone(),
+            material: materials.add(StandardMaterial {
+                base_color_texture : Some(image_handle),
+                alpha_mode: AlphaMode::Mask(0.5),
+                ..default()
+            }),
+            transform: Transform::from_xyz(-5.4, 7.0, 4.),
+            ..default()
+        },
+    );
 }
 
 pub fn card_init(mut cmd : Commands,
@@ -362,7 +361,9 @@ pub fn card_update(mut cmd : Commands,
                    mut cards : Query<(Entity, &mut DialogueCard, &mut Transform), Without<Player>>,
                    mut images: ResMut<Assets<Image>>,
                    mut materials: ResMut<Assets<StandardMaterial>>,
-                   mut render_layer : Local<[bool;4]>) {
+                   mut render_layer : Local<u8>) {
+    if *render_layer == 0 { *render_layer = 1 };
+
     // Obtain the player transformation
     if let Ok((player_entity, mut player_trans)) = player.get_single_mut() {
         //TODO: Delete this
@@ -376,26 +377,12 @@ pub fn card_update(mut cmd : Commands,
         // Update the cards
         let n = cards.iter().count();
         for (i, (e, mut card, mut trans)) in cards.iter_mut().enumerate() {
-            match card.status {
-                CardStatus::Empty => {
-                    // Get first available render layer
-                    let layer = render_layer.iter().position(|&x| !x);
-                    if let Some(layer) = layer {
-                        render_layer[layer] = true;
-                        card.render(layer as u8 + 1, &mut cmd, &props).unwrap(); 
-                    }
-                    card.previous_trans = *trans;
-                    card.lerp_time = 0.;
-                },
-                CardStatus::Rendered => {
-                    if card.ready_counter > 0 {
-                        card.ready_counter -= 1;
-                        continue;
-                    }
-                    render_layer[card.render_layer.unwrap() as usize - 1] = false; 
-                    card.clean(&mut cmd).unwrap();
-                },
-                CardStatus::Done => ()
+            if !card.has_renderer {
+                *render_layer += 1;
+                card.render(*render_layer, &mut cmd, &props); 
+                card.previous_trans = *trans;
+                card.lerp_time = 0.;
+                card.has_renderer = true;
             }
 
             let offset = i as f32 - (n as f32 - 1.) / 2.;
