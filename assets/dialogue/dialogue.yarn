@@ -1,5 +1,6 @@
 title: Start
-position: -60,-922
+tags: 
+position: -141,-936
 ---
 // Variables
 <<declare $anxiety = 0 as number>>
@@ -112,7 +113,7 @@ Player: I guess I'll have ___
 ===
 
 title: OrangeJuice
-position: 53,-458
+position: 14,-461
 ---
 Remie: I'm having the same! I recently developed an obsession with [happy]orange juice[/happy]. 
 Waiter: Two orange juices right up! I'm defenitly sitting with both of ya as soon as I can. 
@@ -145,7 +146,7 @@ Remmie: I still have the picture, by the way.
 ===
 
 title: OtherDrink
-position: -158,38
+position: 440,-301
 ---
 Remie: I'm having an orange juice Marco, thanks. 
 Waiter: So, an orange juice, [select $drink beer="a beer" weird="an... imma bring you a glass of water"/], and some tea I gotta spill.
@@ -188,7 +189,7 @@ Player: It seems like ___ ago
 ===
 
 title: CrookedPicture
-position: -72,-186
+position: 181,-4
 ---
 <<discard>> // Make the player discard their cards when entering a new scene
 Player: Wait, the crooked picture?
@@ -201,100 +202,162 @@ Remie: Yep, we look so goofy.
 ===
 
 title: TalkAboutNico
-position: -367,314
+position: -489,277
 ---
-Player: It's ___ for me that you keep it.
+Player: You keept it...
+Player: That's kind of ___ to me.
 -> (an) important thing
-  Remie: Same with me. I didn't expect us to be friends again.
-  Remie: It's just that my life before the come out looks like false.
-  Remie: Like something I didn't live.
-  Remie: And having this picture was a reminding for me that there was hope.
+  <<set $anxiety to $anxiety - 1>>
+  Remie: I am so relieved you said that.
+  Remie: Sometimes when I think about my life before coming out it feels unreal.
+  Remie: Like I was watching a movie character, not myself.
+  Remie: This picture... it reminds me that there can be light in unexpected places.
   Remie: Even if it's crooked haha.
-  Remie: I hope it could be the same with you.
+  Remie: I hope it can do the same for you.
 -> (a) trigger
   <<set $anxiety to $anxiety + 1>>
-  Remie: Oh can I ask you why?
+  Remie: Oh...
+  Remie: Can I ask you why?
 <<jump NicoDepressed>>
 ===
 
 title: NicoDepressed
-position: 166,335
+position: -445,675
 ---
-Player: You know 
-Player: For the past two years I achieved ___ I wanted.
--> everything
-  Remie: Oh, so are you a doctor now?
-  Player: Yes I am.
-  Remie: Congrats! And are you ok with Marie and your son?
-  Player: Seems like that, yep.
+Player: You know?
+Player: In these two years I achieved ___ I wanted.
+-> everything | (every) important thing
+  Remie: Oh, did you finally get your doctorate?
+  Player: Yes.
+  Remie: Congrats! It must have been a lot of work.
+  Remie: What about Marie? And your son?
+  Player: They couldn't be better.
 -> nothing
   <<set $anxiety to $anxiety - 1>>
-  Player: Actually, I lost all.
-  Remie: Oh did something happen with Marie? 
+  Player: I never feelt so bad, and it gets worse every day.
+  Remie: Nico... did something happen with Marie?
   Player: No, we are still together. 
   Remie: Academic troubles?
   Player: Not really. 
   Player: I'm a doctor now.
-  Remie: Well, congrats!
-Remie: Sorry to ask like that, but
-Remie: Shouldn't you be perfect then? 
+  Remie: Well, congrats! You finally got it.
+-> (any) trigger
+  <<set $nonsense to $nonsense + 1>>
+  Remie: What do you mean?
+  Player: I don't know where my head is today.
+  Player: But to be honest, I don't know where it has been lately.
+  Remie: Nico, are you ok?
+  Player: I should be. I have a loving family, I got my doctorate...
+  Remie: You did? Congratulations!
+Remie: Shouldn't you be happy, then? 
 <<jump NicoPerfect>>
 ===
 
 title: NicoPerfect
-position: 1234,-433
+position: -397,1043
 ---
-Player: Well, I thought so. 
-Player: But now I have it, it feels like ___
--> (a) waste of time
+Player: Well, I thought so.
+Player: I thought that if I got to the finish line, everything would be fine.
+Player: But every time I got closer, there was something else.
+Remie: Like when you got that paper published, and we got together to celebrate.
+Player: Oh... you remember that time.
+Remie: Of course. We were all so happy, but you didn't really enjoy it.
+Remie: And then you spent the next two weeks in your office, working on your thesis.
+Player: Yeah...
+Player: The things that are supposed to make me happy are just tiny speckles.
+Player: But I really thought that after I finish them all, I could finally be happy.
+Remie: You can't really treat life like a to-do list.
+Player: I know. Or at least I thought I knew.
+Player: Now that I have all I wanted, it feels like ___.
+-> (a) waste of time | nothing | (not) (an) important thing
 -> (a) jail
-  Remie: I think I kinda relate with that haha.
--> nothing | everthing
-Player: And that stress me. 
-Player: I bet I'm crooked too [anxious]haha[/anxious]
-Remie: Do you want to tell me more about it? 
-Player: Maybe, thank you.
-Player: It's not like I don't love my wife anymore. 
-Player: Or suddenly I hate mathematics.
-Player: But I don't do sports anymore. 
-Player: I don't see my friends. 
-Player: And this motivation that I had when I was studying, 
+  Remie: I think I can relate with that haha.
+-> everything
+  Remie: Everything?
+  Player: Yeah, like even everything is not enough.
+-> (pulling) (the) trigger
+  <<set $anxiety to $anxiety + 2>>
+  Remie: Nico, are you ok?
+  Player: I'm fine. I didn't mean to say that.
+<<wait 1>>
+Player: I may be crooked too [anxious]haha[/anxious].
+Remie: Well, that makes two of us.
+Player: It's not like I don't love my wife anymore.
+Player: Or that suddenly I hate mathematics.
+<<if $anxiety < 4>>
+  Remie: I would end you if you did, after all the hours I had to listen you rumble about...
+  Remie: What was it called, again? Motivations theory?
+  Player: Haha, yeah. I may have talked too much about [proud]motives[/proud] theory.
+  Remie: That's the one!
+  Remie: Also sorry, hope you know I was just joking.
+  Remie: I liked listening to you talk about it, even if I didn't understand a thing.
+  Remie: Anyways, sorry for getting sidetracked.
+  Player: Don't apologize. It's just that, nothing is [anxiety]terrible[/anxiety]...
+<<endif>>
+Player: But I don't do sports anymore.
+Player: I don't see my friends.
+Player: And the motivation that I had when I was studying,
 Player: now I got what I wanted,
-Player: is no more. 
-Remie: Yeh, like everything is fine with your life but there's something that makes you unable to enjoy it.
-Player: ___
--> !Exactly. 
+Player: is no more.
+Remie: I think I get that.
+Remie: Like everything is fine with your life but there's someone on the backseat that makes you unable to enjoy it.
+Player: ___.
+-> !Exactly
   <<set $anxiety to $anxiety - 1>>
   <<jump Exactly>>
--> !Not really. 
+-> !Not really
   <<jump NotReally>>
 ===
+
 title: Exactly
-position: 1472,-167
+position: -421,1579
 ---
 <<set $anxiety to $anxiety - 1>>
-Remie: Yes, that's what happened to me when I didn't know I was enby. 
-Remie: Of course I'm not trying to say you are in the middle of a [scary]gender trouble[/scary]
+Remie: I felt like that before I knew I was enby.
+Remie: Of course I'm not trying to say you are in the middle of a [scary]gender crisis[/scary].
 Remie: But I know the feeling of not being able to recognize yourself in your life.
-Remie: And you shouldn't feel guilty. 
-Remie: Is not that you're doing someting bad. 
-Remie: Sometimes things just don't fit in. 
-Player: I suppose this have sense. 
-Player: Thank you. 
-Player: It's just... my life is like ___
--> nothing / (a) waste time / (a) jail
+Remie: You shouldn't have guilt, it's not as if you're doing anything bad. 
+Remie: Sometimes things just don't fit in together.
+Player: I suppose it makes sense. 
+Player: Thanks.
+Player: It's just... my life is like ___.
+-> nothing | (a) waste time | (a) jail | (not) (an) important thing
   <<set $anxiety to $anxiety - 1>>
-  Player: sometimes I don't really feel like living it. 
+  Player: Sometimes I don't really feel like living it. 
   Remie: Hey, please, don't say that. 
-  Remie: I know it can be overwelming sometimes. 
-  Remie: And you have a lot of pression,
-  Remie: tou really did what you desired the most. 
+  Remie: I know it can be overwhelming sometimes. 
+  Remie: And you have a lot of pressure on you.
+  Remie: You did what you desired the most.
   Remie: But that doesn't mean that you [intensely]have to[/intensely] to be right. 
-  Remie: You as everyone need 
+  Remie: Everyone needs help sometimes, that includes you. 
+  Remie: All of us have to deal with the conflict from time to time. 
 -> everything
-  Player: to me. 
+  Player: Everything to me. 
   Player: And the mere idea of not enjoying it is disgraceful. 
-  Remie: I know it can be.
+  Remie: I know it can be overwhelming sometimes.
+  Remie: And I know that you may be thinking that the hole you feel you have in your life is wrong.
+  Remie: But it's not that.
+  Remie: Not everything has to always fit together.
+  Remie: It doesn't mean that you have to get away from all of it.
+  Remie: Perhaps you may need a different approach.
+  Player: Well, I got away you and now everything is worse. 
+  Remie: Exactly, kicking me out is the most [proudly]terrible idea[/proudly] anyone could have.
+  Remie: You can have to ask my parents about it.
+  Player: Wait, wha...?
+-> (grabbing) (the) trigger
+  <<set $anxiety to $anxiety - 1>>
+  Player: Ready to give up.
+  Remie: Nico, please, don't say that.
+  Remie: I know it can be overwhelming sometimes.
+  Remie: When you are drowning, you can't think about anything else.
+  Remie: But please, don't give up.
+  Remie: You might think that it will never get better, but it will.
+  Remie: I know it's hard to believe, but it will.
+  Player: I don't know.
+  Remie: You don't need to. You can figure it out on the way.
+  Remie: You can have a lot of pieces that don't fit together and still be happy.
+  Player: Thanks. It feels good to talk to you.
+  Remie: I really missed this, you know?
 <<jump AfterNicoGood>>
 ===
 
@@ -326,8 +389,12 @@ Player: You are ___ and I'm...
   Player: My life has nothing to do with this nonsense of you.
   <<jump AfterNicoBad>>
 -> everything
-  Player: I'm just
-  ** COMPLETAR **
+  Player: I'm just envious of you.
+  Player: In a good way. Well. I hope so. 
+  Player: I didn't really get to understand you, but I realized I didn't need to. 
+  Player: I admire you just because, even if I know we are not the same, I have to recognize you something:
+  Player: know how to be ok with your life from a base, not depending on some goals, 
+  Player: but having the endurance to take actions in virtue of what it's ok with you regardless of some made-up end.
   <<jump AfterNicoGood>>
 -> (an) important thing
   Player: I'm silly. Uncapable to recognize it. 
@@ -345,23 +412,77 @@ Player: You are ___ and I'm...
 title: AfterNicoGood
 position: 1953,-410
 ---
+<<discard>>
+*Remie interrupts the conversation when they see Marco coming*
+Remie: Oh, look who's coming
 <<if $busy_work>>
-  **Mini presentación de marco, piden bebidas etc**
+  Player: Marco! I can't belive you still work here. 
+  Waiter: Well, I'm simply the best, the surprise here is you coming back, Nico. And coming with Remie!
+  Player: Well, yes, I didn't come in a while.
+  Waiter: Well that's true if a while equals two years.
+  Waiter: Remie, I know you understand me, we really gotta explain maths to this lad. 
+  Remie: Oh yes we should.
+
 <<endif>>
-**Se quedan los tres hablando**
+Remie: Have you got some time to sit with us for a bit, Marco?
+Waiter: I do! But don't ya want a drink?
+Player: We can have it later, first the chat!
+Waiter: What have tou being doing the last two years, Nico? 
+Player: Well, you now just ___
+-> work
+  <<jump NicoWork>>
+-> a family
+  <<jump NicoFamily>>
+===
+title: NicoWork
+position: 1815,110
+---
+Waiter: Ah yes, that [bored]mathematician[bored] stuff.
+Remie: Yeah, Marco, careful, he can really operate us haha.
+Player: Thanks, lads, I missed your special support. 
+Waiter: Sure ya did! So, still a doctoral student? 
+Player: Well, not really.
+Player: I finished the thesis. 
+Waiter: WOW! That's great, congrats, Mr. Doctor! I don't know what are ya drinking but it's on the house. 
+Waiter: You may be really in a sweet life momment so.
+Player: Well, kinda
 ===
 
 title: AfterNicoBad
 position: 1637,-981
 ---
-**Viene marco idependientemente de que haya venido antes**
-**Medio saluda**
-**Remie se enfada y se levanta**
-**Nico se queda hablando con marco**
+Waiter: Hey, lads, it's great to have ya both ba...
+Remie: You know what?
+Remie: I don't have to endure this.
+Remie: And I'm not doing it.
+Remie: Thakfuly I have a good job and an amazing circle.
+Remie: I didn't even want us to be friends again. 
+Remie: I just needed to look at the past. 
+Remie: Now I firmly say I'm enby.
+Remie: Regardless you like it or not. 
+Remie: I don't need you to afirme me. 
+Remie: Goodbye 
+<<Wait 1>>
+Waiter: What's happening here?
+Player: Oh hey Marco.
+Player: It's nothing. 
+Player: You know he can be ___
+-> a drama queen. 
+-> an idiot. 
+Waiter: Well, not, I don't know it. 
+Waiter: They is a very good friend and someone you can relay on.
+Waiter: It seems like Remie's not the problem here. 
+Waiter: You know English, you can say "they". 
+Player: Oh come on. 
+Payer: He just want me to come here to show off in front of me, it was just a revenge. 
+Waiter: No, you expected this to be a battle. 
+Waiter: You know what? I don't want you here.
+Waiter: Get out of the bar.
+Waiter: I don't wanna see you anymore.
 ===
 
 title: TalkAboutRemie
-position: 257,-68
+position: 584,346
 ---
 Player: So you still have it ___.
 -> (in) the same place
@@ -394,7 +515,7 @@ Player: So you still have it ___.
 ===
 
 title: LookDeadname
-position: 822,392
+position: 838,791
 ---
 Player: Look, ___, about that...
 -> !Remie // ! is used to specify that only these options should be available
@@ -418,7 +539,7 @@ Player: Look, ___, about that...
 ===
 
 title: BusyDayMarcoDrinks
-position: -564,1184
+position: 1754,790
 ---
 <<marcoComes>>
 Waiter: Hey guys! I didn't think I would see ya both together again!
@@ -471,7 +592,7 @@ Player: I didn't mean to ___ you.
 ===
 
 title: AfterMarcoComes
-position: 1586,2
+position: 2070,354
 ---
 
 ===
