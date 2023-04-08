@@ -45,7 +45,8 @@ pub struct Props {
 #[derive(Resource, Default)]
 pub struct State {
     selected_card : Option<Entity>,
-    previous_card : Option<Entity>
+    previous_card : Option<Entity>,
+    cards : HashMap<String, Option<Entity>>,
 }
 
 // ---
@@ -229,7 +230,7 @@ pub fn box_init(mut cmd : Commands,
                 alpha_mode: AlphaMode::Mask(0.5),
                 ..default()
             }),
-            transform: Transform::from_xyz(-5.4, 7.0, 4.),
+            transform: Transform::from_xyz(-5.4, 7.0, 4.5),
             ..default()
         },
     );

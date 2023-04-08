@@ -2,10 +2,9 @@
 
 // TODO:
 // - Tomar cartas (basado en opciones del script)
-// - ANIMACION REMIE
 // - Menú de opciones y pantalla de cartas
 // - Música
-// - Dibujar mejores texturas
+// - Dibujar mejores texturas, hacer radio, vela, bebidas
 // - Load asset screen and main menu
 // - Efectos especiales, polish, etc...
 
@@ -45,7 +44,7 @@ fn main() {
         .add_plugin(YarnPlugin)
         .add_systems(PreStartup, (res_init, dialogue::res_init))
         .add_systems(Startup, (scene_init, dialogue::box_init, dialogue::card_init))
-        .add_systems(Update, (dialogue::update, dialogue::card_update, dialogue::pick_card_update, candle_update, animation_post_init))
+        .add_systems(Update, (dialogue::update, dialogue::card_update, dialogue::pick_card_update, candle_update, remie_update))
         .run();
 }
 
@@ -54,6 +53,9 @@ fn main() {
 
 #[derive(Component)]
 pub struct Player;
+
+#[derive(Component)]
+struct Remie;
 
 // ---
 // Resources
@@ -119,7 +121,7 @@ fn scene_init(mut cmd : Commands,
     cmd.entity(player.single()).push_children(&[player_cam, player_light]);
 
     // Remie character
-    cmd.spawn(
+    cmd.spawn((
         PbrBundle {
             mesh : meshes.add(Mesh::from(shape::Quad::new(Vec2::new(3.0, 4.5)))),
             material : materials.add(StandardMaterial {
@@ -129,8 +131,9 @@ fn scene_init(mut cmd : Commands,
             }),
             transform : Transform::from_xyz(-5.4, 3.5, 4.0),
             ..default()
-        }
-    );
+        },
+        Remie {}
+    ));
 
     // Load scene from gltf (exported from Blender)
     cmd.spawn(
@@ -139,30 +142,17 @@ fn scene_init(mut cmd : Commands,
             ..default()
         }
     );
-
-    // Load animations
-    cmd.insert_resource(
-        Animations(vec![
-            assets.load("models/escena.glb#Animation0")
-        ])
-    );
-}
-
-// ---
-// Late startup systems
-
-// Start playing the first animation
-fn animation_post_init(animations : Res<Animations>, mut anim_player : Query<&mut AnimationPlayer>, mut done : Local<bool>) {
-    if !*done {
-        if let Ok(mut anim_player) = anim_player.get_single_mut() {
-            anim_player.play(animations.0[0].clone_weak()).repeat();
-            *done = true;
-        }
-    }
 }
 
 // ---
 // Update systems
+
+// Animate Remie
+fn remie_update(time : Res<Time>, mut remie : Query<&mut Transform, With<Remie>>) {
+    if let Ok(mut trans) = remie.get_single_mut() {
+        trans.translation.y = 3.5 + (time.elapsed_seconds() * 1.5).cos() * 0.05;
+    }
+}
 
 // Also animate the candle lighs with flicker
 fn candle_update(time : Res<Time>, perlin : Res<PerlinNoise>, mut lights : Query<&mut PointLight>) {
