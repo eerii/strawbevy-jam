@@ -301,17 +301,17 @@ pub fn update(mut cmd : Commands,
 
     // For now just use the first response when having options
     // This will be handled by selecting a card
-    if yarn.waiting_response {
-        if keyboard.just_pressed(KeyCode::Z) && state.selected_card.is_some() {
-            let id = state.selected_card.unwrap();
-            state.selected_card = None;
-            state.previous_card = None;
-            let card = cards.get(id).expect("Error loading card with selected card id");
-            println!("{}", card.text);
-            runner.select_option(0).unwrap(); //TODO: Choose card
-            cmd.entity(id).despawn();
-            yarn.waiting_response = false;
-        }
+    if yarn.waiting_response && keyboard.just_pressed(KeyCode::Z) && state.selected_card.is_some() {
+        let id = state.selected_card.unwrap();
+        state.selected_card = None;
+        state.previous_card = None;
+
+        let card = cards.get(id).expect("Error loading card with selected card id");
+        println!("{}", card.text);
+        runner.select_option(0).unwrap(); //TODO: Choose card
+
+        cmd.entity(id).despawn();
+        yarn.waiting_response = false;
     }
 
     // Check if the dialogue is paused and if the user is continuing
@@ -413,11 +413,9 @@ pub fn card_update(mut cmd : Commands,
                     card.previous_trans = *trans;
                     card.lerp_time = 0.;
                 }
-            } else {
-                if state.previous_card.is_some() && state.previous_card.unwrap() == e {
-                    card.previous_trans = *trans;
-                    card.lerp_time = 0.;
-                }
+            } else if state.previous_card.is_some() && state.previous_card.unwrap() == e {
+                card.previous_trans = *trans;
+                card.lerp_time = 0.;
             }
 
             if (trans.translation - card.target_trans.translation).length() < 0.01 {
