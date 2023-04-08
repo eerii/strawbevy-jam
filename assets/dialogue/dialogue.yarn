@@ -1,5 +1,5 @@
 title: Start
-position: -239,-45
+position: -60,-922
 ---
 // Variables
 <<declare $anxiety = 0 as number>>
@@ -8,14 +8,9 @@ position: -239,-45
 <<declare $alcohol = 0 as number>>
 <<declare $busy_work = false as bool>>
 <<declare $talk_about_nico = false as bool>>
+<<declare $deadname = false as bool>>
 <<declare $weather = "" as string>>
 <<declare $drink = "" as string>>
-<<set $anxiety to 0>>
-<<set $offense to 0>>
-<<set $nonsense to 0>>
-<<set $alcohol to 0>>
-<<set $busy_work to false>>
-<<set $talk_about_nico to false>>
 // Start
 Remie: Hey! I-it's been a while.
 Player: Yeah, thanks for coming on ___.
@@ -47,7 +42,7 @@ Player: Hmm... it seems like they're having ___.
 ===
 
 title: BusyDay
-position: -35,273
+position: -665,-557
 ---
 Remie: Marco's going to take a while...
 Player: Wait, is Marco still the waiter?
@@ -83,8 +78,9 @@ Player: Well, not really. It's not ___.
 ===
 
 title: WaiterComes
-position: -9,-219
+position: 641,-579
 ---
+<<marcoComes>>
 Waiter: Hey guys, having ya both back is great!
 Waiter: Remie I'm used to seeing, but Nico, long time no see. Ya gotta catch me up later.
 Remie: Hey, Marco! [happy]You[/happy] need to tell me all about this new person you're seeing.
@@ -116,11 +112,12 @@ Player: I guess I'll have ___
 ===
 
 title: OrangeJuice
-position: 251,-49
+position: 53,-458
 ---
 Remie: I'm having the same! I recently developed an obsession with [happy]orange juice[/happy]. 
 Waiter: Two orange juices right up! I'm defenitly sitting with both of ya as soon as I can. 
 Player: Please do!
+<<marcoLeaves>>
 <<wait 1>> // Wait for a bit
 Player: So... An obsession with orange juice? 
 Remie: Yep! Somehow this drink always puts me at ease. 
@@ -148,11 +145,12 @@ Remmie: I still have the picture, by the way.
 ===
 
 title: OtherDrink
-position: 273,-215
+position: -158,38
 ---
 Remie: I'm having an orange juice Marco, thanks. 
 Waiter: So, an orange juice, [select $drink beer="a beer" weird="an... imma bring you a glass of water"/], and some tea I gotta spill.
 Waiter: Be right back!
+<<marcoLeaves>>
 <<wait 1>>
 Remie: So, we really are on the same bar as two years ago. 
 Player: Well, we're even on the same table.
@@ -190,7 +188,7 @@ Player: It seems like ___ ago
 ===
 
 title: CrookedPicture
-position: 474,71
+position: -72,-186
 ---
 <<discard>> // Make the player discard their cards when entering a new scene
 Player: Wait, the crooked picture?
@@ -203,7 +201,7 @@ Remie: Yep, we look so goofy.
 ===
 
 title: TalkAboutNico
-position: 637,-160
+position: -367,314
 ---
 Player: It's ___ for me that you keep it.
 -> (an) important thing
@@ -220,7 +218,7 @@ Player: It's ___ for me that you keep it.
 ===
 
 title: NicoDepressed
-position: 857,-369
+position: 166,335
 ---
 Player: You know 
 Player: For the past two years I achieved ___ I wanted.
@@ -244,7 +242,7 @@ Remie: Shouldn't you be perfect then?
 ===
 
 title: NicoPerfect
-position: 1109,-454
+position: 1234,-433
 ---
 Player: Well, I thought so. 
 Player: But now I have it, it feels like ___
@@ -275,12 +273,29 @@ title: Exactly
 position: 1472,-167
 ---
 <<set $anxiety to $anxiety - 1>>
-Remie: Yes, that what happened to me when I didn't know I was enby. 
+Remie: Yes, that's what happened to me when I didn't know I was enby. 
 Remie: Of course I'm not trying to say you are in the middle of a [scary]gender trouble[/scary]
-Remie: But I know the feeling of not being able to recognize yourself in your life. 
+Remie: But I know the feeling of not being able to recognize yourself in your life.
+Remie: And you shouldn't feel guilty. 
+Remie: Is not that you're doing someting bad. 
+Remie: Sometimes things just don't fit in. 
+Player: I suppose this have sense. 
+Player: Thank you. 
+Player: It's just... my life is like ___
+-> nothing / a waste time / jail
+  <<set $anxiety to $anxiety - 1>>
+  Player: sometimes I don't really feel like living it. 
+  Remie: Hey, please, don't say that. 
+  Remie: I know it can be overwelming sometimes. 
+  Remie: 
+-> everything
+  Player: to me. 
+  Player: And the mere idea of not enjoying it is disgraceful. 
+<<jump AfterNicoGood>>
 ===
+
 title: NotReally
-position: 1474,-579
+position: 1226,-709
 ---
 <<set $anxiety to $anxiety + 1>>
 Remie: So, what is it then? 
@@ -291,15 +306,58 @@ Remie: You reached the goal, so, what now?
 Player: Well, I don't think we are the same.
 Player: You are ___ and I'm...
 -> (a) waste of time | nothing
+  <<set $anxiety to $anxiety + 2>>
+  Player: I'm here just for pity.
+  Player: I thought you may have changed a bit. 
+  Player: Perhaps we could have a nice chat, that's all. 
+  Player: But I didn't really want to come. 
+  Player: This recognition you talk about is a no sense.
+  Player: I haven't thought on you in the last two years.  
+  <<jump AfterNicoBad>>
 -> (a) jail | (a) trigger
-  <<set $anxiety to $anxiety>>
+  <<set $anxiety to $anxiety + 2>>
+  Player: I'm just overpassed with you.
+  Player: I don't feel right with you.
+  Player: Being here remember me why we are not friends anymore. 
+  Player: My life has nothing to do with this nonsense of you.
+  <<jump AfterNicoBad>>
 -> everything
-  Player: I'm just so worthless.
+  Player: I'm just
+  ** COMPLETAR **
+  <<jump AfterNicoGood>>
 -> (an) important thing
+  Player: I'm silly. Uncapable to recognize it. 
+  Player: It's not like I had the faith of solve my problems by seeing you today. 
+  Player: Or you acepting me like that. 
+  Player: I know you've dealing with a lot and, honestly, I don't really understand you. 
+  Player: I didn't come here to be friends again,
+  Player: but to meet again with something that have scared me for the last years. 
+  Player: So, no, we are not the same: I find you so different that I couldn't even mantain a relation with you,
+  Player: but now, over time,
+  Payer: I learnt that this distance is important, an so you should be.
+  <<jump AfterNicoGood>>
+===
+
+title: AfterNicoGood
+position: 1953,-410
+---
+<<if $busy_work>>
+  **Mini presentación de marco, piden bebidas etc**
+<<endif>>
+**Se quedan los tres hablando**
+===
+
+title: AfterNicoBad
+position: 1637,-981
+---
+**Viene marco idependientemente de que haya venido antes**
+**Medio saluda**
+**Remie se enfada y se levanta**
+**Nico se queda hablando con marco**
 ===
 
 title: TalkAboutRemie
-position: 410,329
+position: 257,-68
 ---
 Player: So you still have it ___.
 -> (in) the same place
@@ -309,13 +367,13 @@ Player: So you still have it ___.
   Remie: My parents kicked me out of home when I came out.
   Remie: I'm sharing an apartment downtown.
   Remie: The picture is one of the few things I got from my house after... well, [anxious]that[/anxious].
-  Remie: But hey, it's still crooked. 
+  Remie: But hey, it's still crooked.
+  Player: I'm sorry. Your parents are such jerks.
+  Remie: Well, it is what it is.
+  Remie: No point beating a dead horse. 
   <<if $busy_work>>
-    <<jump BusyDaySamePlace>>
+    <<jump BusyDayMarcoDrinks>>
   <<else>>
-    Player: I'm sorry. Your parents are such jerks.
-    Remie: Well, it is what it is.
-    Remie: No point beating a dead horse.
     <<jump AfterMarcoComes>>
   <<endif>>
 -> (after) all that happened
@@ -332,68 +390,64 @@ Player: So you still have it ___.
 ===
 
 title: LookDeadname
-position: 854,392
+position: 822,392
 ---
 Player: Look, ___, about that...
 -> !Remie // ! is used to specify that only these options should be available
-  <<if $busy_work>>
-    <<jump BusyDayRemie>>
-  <<endif>>
+  Remie: 
 -> !Mario
   <<set $anxiety to $anxiety + 2>>
-  <<set $offense to $offense + 1>>
-  <<if $busy_work>>
-    <<jump BusyDayMario>>
-  <<endif>>
+  <<set $offense to $offense + 2>>
+  <<set $deadname to true>>
+<<if $busy_work>>
+  <<jump BusyDayMarcoDrinks>>
+<<elseif $deadname>>
+  <<jump AfterDeadname>>
+<<else>>
+  <<jump AfterMarcoComes>>
+<<endif>>
 ===
 
-title: BusyDaySamePlace
-position: 1086,-237
+title: BusyDayMarcoDrinks
+position: -564,1184
 ---
+<<marcoComes>>
 Waiter: Hey guys! I didn't think I would see ya both together again!
-Waiter: I whish I had less work so I could chat with ya for a few.
-Remie: Don't worry, Marco! Maybe in a while. 
-Waiter: Sure I will! What do ya want?
-Remie: I'm having an orange juice please. 
-Player: I'll have ___. It's really nice to see you, Marco.
--> (the) same
-  Remie: Well, seems like we both like orange juice for [nervous]tense moments[/nervous]
--> (a) beer
-<<set $alcohol to 1>>
-  Remie: Seems like the picture is not the only thing that stays. 
-Waiter: Will be with ya a'soon as I can. 
-Player: Well, it defenitly wasn't the best moment. 
-<<jump AfterMarco>>
+<<if $deadname>>
+  Waiter: Sorry for not coming ear...
+  Remie: Don't worry, Marco. Can you please leave us for another moment?
+  Waiter: Of course, is everything ok?
+  Remie: Yes, I just need to talk with my [sarcastic]friend[/sarcastic].
+  Waiter: Sure, I'll be back in a few.
+  Waiter: Call me if you need... anything.
+  <<marcoLeaves>>
+  <<wait 1>>
+  <<jump AfterDeadname>>
+<<else>>
+  Waiter: I whish I had less work so I could chat with ya for a few.
+  Remie: Don't worry, Marco! You can join [emotional]us[/emotional] later.
+  Waiter: For now, what can I get ya?
+  Remie: I'm having an orange juice please.
+  Player: I'll have ___.
+  -> (the) same
+    Remie: You also like orange juice?
+    Player: It's not my favorite, but I don't want to drink alcohol.
+  -> (a) beer
+    <<set $alcohol to 1>>
+    Remie: It seems like the picture is not the only thing that stays the same.
+  Waiter: Will be with ya as soon as I can.
+  Player: It's really nice to see you, Marco.
+  <<marcoLeaves>>
+  <<wait 1>>
+  <<jump AfterMarcoComes>>
+<<endif>>
 ===
 
-title: BusyDayRemie
-position: 1402,187
----
-Waiter: Hey guys! I didn't think I would see ya both together again! I whish I had less work so I could chat with ya for a few.
-Remie: Hey, Marco! Don't worry, I'm willing to talk with you. You can join [emotional]us[/emotional] later. 
-Waiter: By now, what are ya having?.
-Remie: I'm having an orange juice please. 
-Player: I'll have ___. It's really nice to see you, Marco.
--> (the) same
-  Remie: Well, seems like we both like orange juice for [nervous]tense moments[/nervous]
--> (a) beer
-<<set $alcohol to 1>>
-  Remie: Seems like the picture is not the only thing that stays. 
-Waiter: Will be with ya a'soon as I can. 
-Player: Well, it defenitly wasn't the best moment. 
-Player: 
-<<jump AfterMarcoComes>>
-===
-
-title: BusyDayMario
+title: AfterDeadname
 position: 1276,390
 ---
-Waiter: Hey, guys! I didn't think I would see ya both together again...
-Remie: Sorry, Marco, can you come in another moment please. 
-Waiter: Hm yes, of course, are you ok, Remie? 
-Remie: Yes, we are in a hard moment, that's all.
-*Marco leaves* 
-Remie: You know what Nico? I thought we could have a talk, but it really seems like not. 
+Remie: You know what, Nico?
+Remie: I really thought we could talk again, but I guess I was wrong.
 Player: I didn't mean to ___ you.
 -> offend 
   Player: it's just a name. 

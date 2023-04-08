@@ -43,8 +43,10 @@ fn main() {
         )
         .add_plugin(YarnPlugin)
         .add_systems(PreStartup, (res_init, dialogue::res_init))
-        .add_systems(Startup, (scene_init, dialogue::box_init, dialogue::card_init))
-        .add_systems(Update, (dialogue::update, dialogue::card_update, dialogue::pick_card_update, candle_update, remie_update))
+        .add_systems(Startup, (scene_init, dialogue::box_init))
+        .add_systems(Update, (dialogue::update, dialogue::card_update, dialogue::pick_card_update,
+                              dialogue::create_cards_update, dialogue::card_words_update,
+                              candle_update, remie_update, player_update))
         .run();
 }
 
@@ -151,6 +153,13 @@ fn scene_init(mut cmd : Commands,
 fn remie_update(time : Res<Time>, mut remie : Query<&mut Transform, With<Remie>>) {
     if let Ok(mut trans) = remie.get_single_mut() {
         trans.translation.y = 3.5 + (time.elapsed_seconds() * 1.5).cos() * 0.05;
+    }
+}
+
+// Animate player camera
+fn player_update(time : Res<Time>, mut player : Query<&mut Transform, With<Player>>) {
+    if let Ok(mut trans) = player.get_single_mut() {
+        *trans = trans.looking_at(trans.translation + Vec3::new(time.elapsed_seconds().sin() * 0.02, -0.2, -1.), Vec3::Y);
     }
 }
 
