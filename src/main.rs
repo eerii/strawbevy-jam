@@ -1,7 +1,6 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 // TODO:
-// - Animar cartas mejor, darles textura
 // - Tomar cartas (basado en opciones del script)
 // - Jugar las cartas
 // - Menú de opciones y pantalla de cartas
@@ -19,7 +18,7 @@ use yarn::YarnPlugin;
 
 use bevy::{
     prelude::*,
-    window::WindowResolution
+    window::WindowResolution,
 };
 
 use noise::{Perlin, NoiseFn};
@@ -32,14 +31,17 @@ fn main() {
     console_error_panic_hook::set_once();
 
     App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: "Strawbevy Jam".to_string(),
-                resolution: WindowResolution::new(800., 800.),
+        .add_plugins(DefaultPlugins
+            .set(WindowPlugin {
+                primary_window: Some(Window {
+                    title: "Strawbevy Jam".to_string(),
+                    resolution: WindowResolution::new(800., 800.),
+                    ..default()
+                }),
                 ..default()
-            }),
-            ..default()
-        }))
+            })
+            .set(ImagePlugin::default_nearest())
+        )
         .add_plugin(YarnPlugin)
         .add_systems(PreStartup, (res_init, dialogue::res_init))
         .add_systems(Startup, (scene_init, dialogue::box_init, dialogue::card_init))
@@ -81,9 +83,13 @@ fn res_init(mut cmd : Commands) {
 }
 
 // 3D Scene initalization
-fn scene_init(mut cmd : Commands, assets : Res<AssetServer>, player : Query<Entity, With<Player>>) {
+fn scene_init(mut cmd : Commands,
+              assets : Res<AssetServer>,
+              mut meshes: ResMut<Assets<Mesh>>,
+              mut materials: ResMut<Assets<StandardMaterial>>,
+              player : Query<Entity, With<Player>>) {
     // Main camera
-    let cam = cmd.spawn((
+    let player_cam = cmd.spawn((
         Camera3dBundle {
             ..default()
         },
@@ -96,17 +102,32 @@ fn scene_init(mut cmd : Commands, assets : Res<AssetServer>, player : Query<Enti
             ..default()
         }
     )).id();
-    cmd.entity(player.single()).push_children(&[cam]);
 
     // Player point light
-    cmd.spawn(
+    let player_light = cmd.spawn(
         PointLightBundle {
-            transform : Transform::from_xyz(-8.0, 5.2, 16.0),
+            transform : Transform::from_xyz(-0.5, 0.0, 4.0),
             point_light : PointLight {
-                color : Color::rgb(1.0, 0.7, 0.5),
+                color : Color::rgb(0.8, 0.5, 0.3),
                 intensity : 500.,
                 ..default()
             },
+            ..default()
+        }
+    ).id();
+
+    cmd.entity(player.single()).push_children(&[player_cam, player_light]);
+
+    // Remie character
+    cmd.spawn(
+        PbrBundle {
+            mesh : meshes.add(Mesh::from(shape::Quad::new(Vec2::new(3.0, 4.5)))),
+            material : materials.add(StandardMaterial {
+                base_color_texture : Some(assets.load("textures/remie.png")),
+                alpha_mode: AlphaMode::Mask(0.5),
+                ..default()
+            }),
+            transform : Transform::from_xyz(-5.4, 3.5, 4.0),
             ..default()
         }
     );

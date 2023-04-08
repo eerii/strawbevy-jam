@@ -2,9 +2,11 @@ title: Start
 ---
 // Variables
 <<set $anxiety to 0>>
+<<set $offense to 0>>
 <<set $nonsense to 0>>
 <<set $alcohol to 0>>
 <<set $busy_work to false>>
+<<set $talk_about_nico to false>>
 // Start
 Remie: Hey! I-it's been a while.
 Player: Yeah, thanks for coming on ___.
@@ -50,6 +52,8 @@ Player: Well, not really. It's not ___.
   Player: Don't worry, it's fine. I'm fine. 
   Remie: Ok...
   Remie: You know what? This table made me remember something that always cheers me up.
+  Remie: I have the [proud]picture[/proud]
+  <<set $talk_about_nico to true>>
 -> (the) old days
   <<set $anxiety to $anxiety + 1>>
   Remie: [anxious]W-well[/anxious], I thougth you liked the old days.
@@ -57,10 +61,14 @@ Player: Well, not really. It's not ___.
   Remie: And you don't want to remember the past?
   Player: Is that why you invited me here? To dwell on ancient times? 
   Remie: Ahm... not really...
+  Remie: Do you remember the picture?
 -> other
   <<set $nonsense to $nonsense + 1>>
-  Remie: I don't think I quite get what you mean. Anyways...
-Remie: I have [proud]the picture[/proud]. 
+  Remie: I don't think I quite get what you mean.
+  <<wait 1>>
+  Remie: You know what I just thought, sitting on this table?
+  Nico: Hmm... How much they need a renovation?
+  Remie: No silly, I remembered [happy]the picture[/happy]
 Player: Wait, the crooked picture?
 <<jump CrookedPicture>>
 ===
@@ -104,7 +112,7 @@ Player: I guess I'll have ___
 
 title: OrangeJuice
 ---
-Remie: I'm having the same! I have developed a recent obsession with [happy]orange juice[/happy]. 
+Remie: I'm having the same! I recently developed an obsession with [happy]orange juice[/happy]. 
 Waiter: Two orange juices right up! I'm defenitly sitting with both of ya as soon as I can. 
 Player: Please do!
 <<wait 1>> // Wait for a bit
@@ -112,15 +120,32 @@ Player: So... An obsession with orange juice?
 Remie: Yep! Somehow this drink always puts me at ease. 
 Player: Oh, what ___!
 -> (a) weirdo
+  <<set $anxiety to $anxiety + 1>>
+  <<set $offense to $offense + 1>>
+  Remie: Jeez... no need to be so harsh.
 -> (a) coincidence
-  Remie: Same for you?
+  <<set $anxiety to $anxiety - 1>>
+  Remie: It's such a tasty drink, everyone is missing out.
 -> other
+  <<set $nonsense to $nonsense + 1>>
+  Remie: You're not making much sense, Nico.
+  Player: Sorry, I'm a bit out of it today.
+  Remie: Don't apologize, please. Is there something I can do to make you feel more [happy]comfortable[/happy]?
+  Player: It's nothing. I'm [anxious]fine[/anxious].
+  <<set $talk_about_nico to true>>
+  Remie: Ok...
+  Player: It's cool. The orange juice I mean.
+Player: If you like it so much you should get a poster of it.
+Remmie: I would if I had some free space in my room.
+Remmie: I still have the picture, by the way.
+Player: Wait, the crooked picture?
+<<jump CrookedPicture>>
 ===
 
 title: OtherDrink
 ---
 Remie: I'm having an orange juice Marco, thanks. 
-Waiter: So, an orange juice, [select beer="a beer" weird="an... imma bring you a glass of water"], and some tea I gotta spill.
+Waiter: So, an orange juice, [select $drink beer="a beer" weird="an... imma bring you a glass of water"/], and some tea I gotta spill.
 Waiter: Be right back!
 <<wait 1>>
 Remie: So, we really are on the same bar as two years ago. 
@@ -143,18 +168,18 @@ Player: Yes I do! And ___
 Player: It seems like ___ ago
 -> (a) long time
   <<set $anxiety to $anxiety + 1>>
-  Remie: Does it? For me is an everyday thing, after all, I see that picture every morning.
+  Remie: Does it? For me is an everyday thing, after all, I see the picture every morning.
 -> (a) little while
   <<set $anxiety to $anxiety - 1>>
-  Remie: Does it? For me is an everyday thing, after all, I see that picture every morning.
+  Remie: Does it? For me is an everyday thing, after all, I see the picture every morning.
 -> hour long arguments
   <<set $anxiety to $anxiety + 1>>
   Remie: I guess you can measure time in arguments. We didn't have a shortage of them.
-  Remie: Every time I look at that picture I can't help but remembering everything.
+  Remie: Every time I look at the picture I can't help but remembering everything.
 -> other
   <<set $nonsense to $nonsense + 1>>
-  Remie: You are so weird.
-  Remie: Here, I have the picture.
+  Remie: You are always so weird.
+  Remie: Like in the picture.
 Player: Wait, the crooked picture?
 <<jump CrookedPicture>>
 ===
@@ -163,4 +188,19 @@ title: CrookedPicture
 ---
 <<discard>> // Make the player discard their cards when entering a new scene
 Remie: ...
+<<if $talk_about_nico>>
+    <<jump TalkAboutNico>>
+<<else>>
+    <<jump TalkAboutRemie>>
+<<endif>>
+===
+
+title: TalkAboutNico
+---
+
+===
+
+title: TalkAboutRemi
+---
+
 ===
