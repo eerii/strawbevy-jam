@@ -29,7 +29,7 @@ Player: Hmm... it seems like they're having ___.
   <<jump BusyDay>>
 -> (a) calm day
   Remie: Yeah, thank goodness! This place can get really [anxious]crowded[/anxious] sometimes.
-  <<jump WaitressOnTime>>
+  <<jump WaiterComes>>
 -> (a) rainy day // Same as a busy day
   <<set $busy_work to true>>
   <<set $anxiety to $anxiety + 1>>
@@ -249,7 +249,7 @@ Player: But now I have it, it feels like ___
 -> (a) waste of time
 -> (a) jail
   Remie: I think I kinda relate with that haha.
--> nothing/everthing
+-> nothing | everthing
 Player: And that stress me. 
 Player: I bet I'm crooked too [anxious]haha[/anxious]
 Remie: Do you want to tell me more about it? 
@@ -282,15 +282,19 @@ Remie: Sometimes things just don't fit in.
 Player: I suppose this have sense. 
 Player: Thank you. 
 Player: It's just... my life is like ___
--> nothing / a waste time / jail
+-> nothing / (a) waste time / (a) jail
   <<set $anxiety to $anxiety - 1>>
   Player: sometimes I don't really feel like living it. 
   Remie: Hey, please, don't say that. 
   Remie: I know it can be overwelming sometimes. 
-  Remie: 
+  Remie: And you have a lot of pression,
+  Remie: tou really did what you desired the most. 
+  Remie: But that doesn't mean that you [intensely]have to[/intensely] to be right. 
+  Remie: You as everyone need 
 -> everything
   Player: to me. 
   Player: And the mere idea of not enjoying it is disgraceful. 
+  Remie: I know it can be.
 <<jump AfterNicoGood>>
 ===
 
@@ -394,7 +398,12 @@ position: 822,392
 ---
 Player: Look, ___, about that...
 -> !Remie // ! is used to specify that only these options should be available
-  Remie: 
+  Remie: I know.
+  Remie: I don't expect everything to be the same as before.
+  Remie: I know you're not the same person you were when we were friends.
+  Remie: I certainly am not.
+  Remie: But I'm glad you came.
+  Player: I'm glad too.
 -> !Mario
   <<set $anxiety to $anxiety + 2>>
   <<set $offense to $offense + 2>>

@@ -28,6 +28,8 @@ const DIALOGUE_TEX_SIZE : Extent3d = Extent3d { width: 768, height: 192, depth_o
 const DIALOGUE_MESH_SIZE : Vec2 = Vec2::new(6.0, 1.5);
 const DIALOGUE_FONT_SIZE : f32 = 24.;
 
+const NO_OPTION : usize = 1000;
+
 // ---
 // Resources
 
@@ -44,14 +46,26 @@ pub struct Props {
 }
 
 enum CardState {
-    New,
-    Card(Entity),
+    New(usize),
+    Card(Entity, usize),
     Played,
+}
+
+impl Default for CardState {
+    fn default() -> Self {
+        CardState::New(NO_OPTION)
+    }
 }
 
 enum WordType {
     Regular(String),
     Varying(String),
+}
+
+impl Default for WordType {
+    fn default() -> Self {
+        WordType::Regular(String::new())
+    }
 }
 
 #[derive(Resource, Default)]
@@ -231,6 +245,7 @@ pub fn box_init(mut cmd : Commands,
     cmd.spawn((
         Text2dBundle {
             text : Text::from_section("", props.box_style["regular"].clone()),
+            text_2d_bounds : Text2dBounds{ size : Vec2::new(DIALOGUE_TEX_SIZE.width as f32 - 48., DIALOGUE_TEX_SIZE.height as f32 - 32.) },
             transform : Transform::from_xyz(0.0, 0.0, 0.1),
             ..default()
         },
@@ -268,6 +283,7 @@ pub fn box_init(mut cmd : Commands,
 pub fn update(mut cmd : Commands,
               mut state : ResMut<State>,
               keyboard : Res<Input<KeyCode>>,
+              mouse : Res<Input<MouseButton>>,
               asset_lines : Res<Assets<YarnLinesAsset>>,
               mut asset_runner : ResMut<Assets<YarnRunnerAsset>>,
               mut yarn : ResMut<YarnManager>,
@@ -281,16 +297,22 @@ pub fn update(mut cmd : Commands,
 
     // For now just use the first response when having options
     // This will be handled by selecting a card
-    if yarn.waiting_response && keyboard.just_pressed(KeyCode::Z) && state.selected_card.is_some() {
+    if yarn.waiting_response && mouse.just_pressed(MouseButton::Left) && state.selected_card.is_some() {
         let id = state.selected_card.unwrap();
 
         let card = cards.get(id).expect("Error loading card with selected card id");
-        runner.select_option(0).unwrap(); //TODO: Choose card
 
         cmd.entity(id).despawn();
         yarn.waiting_response = false;
 
-        state.cards.get_mut(&card.id).unwrap().0 = CardState::Played;
+        let state_card = &mut state.cards.get_mut(&card.id);
+        if let Some((st, _)) = state_card {
+            if let CardState::Card(_, opt) = st {
+                runner.select_option(*opt).unwrap();
+                println!("Selected option {} with card {}", opt, card.id);
+                *st = CardState::Played;
+            }
+        }
         state.selected_card = None;
         state.previous_card = None;
     }
@@ -307,43 +329,94 @@ pub fn update(mut cmd : Commands,
     if let Ok(Some(dialogue)) = runner.execute(&mut yarn.storage) {
         match dialogue {
             ExecutionOutput::Line(line) => {
-                let new_line = lines.line(&line).expect("Failed to parse yarn line");
-                dialogue_box.single_mut().sections[0].value = new_line;
-                yarn.waiting_continue = true;
+                let mut l = lines.line(&line).expect("Failed to parse yarn line");
+                let is_question = l.contains("___");
+
+                while let Some(start) = l.find('[') {
+                    let end = l.find(']').expect("Missing ] in option");
+                    l.replace_range(start..end + 1, "");
+                }
+
+                dialogue_box.single_mut().sections[0].value = l;
+                yarn.waiting_continue = !is_question;
             },
             ExecutionOutput::Options(opts) => {
-                for opt in opts {
-                    let l = lines.line(opt.line()).expect("Failed to parse yarn option");
+                let mut other_opt = 0;
+                for (opt_num, opt) in opts.iter().enumerate() {
+                    let line = lines.line(opt.line()).expect("Failed to parse yarn option");
 
-                    let key : Vec<&str> = l.split(" ")
-                        .filter(|x| !x.contains("("))
-                        .collect();
-                    let key = key.join(" ");
-
-                    let mut words = vec![];
-                    for w in l.split(" ") {
-                        if w.contains("(") {
-                            words.push(WordType::Varying(w.replace("(", "").replace(")", "") + " "));
+                    for l in line.split('|') {
+                        let l = l.trim();
+                        if l == "other" {
+                            other_opt = opt_num;
                             continue;
                         }
-                        if words.last().is_some() && matches!(words.last().unwrap(), WordType::Regular(_)) {
-                            if let WordType::Regular(s) = words.last_mut().unwrap() {
-                                s.push_str(" ");
-                                s.push_str(w);
-                            }
-                        } else {
-                            words.push(WordType::Regular(w.to_string()));
-                        }
-                    }
+                        if l.starts_with('!') {
+                            todo!()
+                        } 
 
-                    let (_, w) = state.cards.entry(key.to_string()).or_insert((CardState::New, vec![]));
-                    *w = words;
+                        let key : Vec<&str> = l.split(' ')
+                            .filter(|x| !x.contains('('))
+                            .collect();
+                        let key = key.join(" ");
+
+                        let mut words = vec![];
+                        for w in l.split(' ') {
+                            if w.contains('(') {
+                                words.push(WordType::Varying(w.replace(['(', ')'], "") + " "));
+                                continue;
+                            }
+                            if words.last().is_some() && matches!(words.last().unwrap(), WordType::Regular(_)) {
+                                if let WordType::Regular(s) = words.last_mut().unwrap() {
+                                    s.push(' ');
+                                    s.push_str(w);
+                                }
+                            } else {
+                                words.push(WordType::Regular(w.to_string()));
+                            }
+                        }
+
+                        let (t, w) = state.cards.entry(key.to_string()).or_default();
+                        *w = words;
+                        match t {
+                            CardState::New(o) => *o = opt_num,
+                            CardState::Card(_, o) => *o = opt_num,
+                            _ => ()
+                        }
+                        println!("Option {} with key {}", opt_num, key);
+                    }
                 }
+                // This code is sooooo ugly ugh
+                state.cards.iter_mut()
+                    .filter(|(_, (card, _))| match card {
+                        CardState::New(o) => *o == NO_OPTION,
+                        CardState::Card(_, o) => *o == NO_OPTION,
+                        _ => false
+                    })
+                    .for_each(|(_, (card, _))| {
+                        match card {
+                            CardState::New(o) => *o = other_opt,
+                            CardState::Card(_, o) => *o = other_opt,
+                            _ => ()
+                        }
+                    });
 
                 yarn.waiting_response = true;
             },
-            ExecutionOutput::Command(cmd) => {
-                println!("todo: {:?}", cmd);
+            ExecutionOutput::Command(c) => {
+                match c.as_str() {
+                    "discard" => {
+                        state.cards.iter_mut().for_each(|(_, (card, _))| {
+                            if let CardState::Card(id, _) = card {
+                                cmd.entity(*id).despawn();
+                            } 
+                            *card = CardState::Played;
+                        });
+                        state.selected_card = None;
+                        state.previous_card = None;
+                    },
+                    _ => println!("TODO: Command not implemented {c}")
+                }
             },
             ExecutionOutput::Function(function) => {
                 let output = yarn_spinner::handle_default_functions(&function);
@@ -360,26 +433,28 @@ pub fn create_cards_update(mut cmd : Commands,
                            mut images : ResMut<Assets<Image>>,
                            mut materials: ResMut<Assets<StandardMaterial>>,
                            player : Query<Entity, With<Player>>) {
-    for (word, (card, _)) in state.cards.iter_mut().filter(|(_, (card, _))| matches!(card, CardState::New) ) {
-        let mut image = Image { texture_descriptor : props.card_texture_descriptor.clone(), ..default() };
-        image.resize(CARD_TEX_SIZE);
-        let image_handle = images.add(image);
+    for (word, (card, _)) in state.cards.iter_mut() {
+        if let CardState::New(opt) = card {
+            let mut image = Image { texture_descriptor : props.card_texture_descriptor.clone(), ..default() };
+            image.resize(CARD_TEX_SIZE);
+            let image_handle = images.add(image);
 
-        let id = cmd.spawn((
-            PbrBundle {
-                mesh: props.card_mesh.clone(),
-                material: materials.add(StandardMaterial {
-                    base_color_texture : Some(image_handle.clone()),
-                    ..default()
-                }),
-                transform: Transform::from_xyz(0., -1., -1.),
-                ..default()
-            },
-            DialogueCard::new(word.to_string(), image_handle, props.card_style["regular"].clone()),
-        )).id();
+            let id = cmd.spawn((
+                    PbrBundle {
+                        mesh: props.card_mesh.clone(),
+                        material: materials.add(StandardMaterial {
+                            base_color_texture : Some(image_handle.clone()),
+                            ..default()
+                        }),
+                        transform: Transform::from_xyz(0., -1., -1.),
+                        ..default()
+                    },
+                    DialogueCard::new(word.to_string(), image_handle, props.card_style["regular"].clone()),
+                    )).id();
 
-        cmd.entity(player.single()).push_children(&[id]); 
-        *card = CardState::Card(id);
+            cmd.entity(player.single()).push_children(&[id]); 
+            *card = CardState::Card(id, *opt);
+        }
     }
 }
 

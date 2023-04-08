@@ -1,7 +1,6 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 // TODO:
-// - Tomar cartas (basado en opciones del script)
 // - Menú de opciones y pantalla de cartas
 // - Música
 // - Dibujar mejores texturas, hacer radio, vela, bebidas
