@@ -16,11 +16,17 @@ use yarn::YarnPlugin;
 use bevy::{
     prelude::*,
     window::WindowResolution,
-    render::render_resource::TextureDescriptor
+    render::{render_resource::TextureDescriptor, view::RenderLayers}
 };
 
 use std::collections::HashMap;
 use noise::{Perlin, NoiseFn};
+
+// ---
+
+const MENU_BUTTON_REGULAR : Color = Color::rgba(0.5, 0.0, 0.0, 0.3);
+const MENU_BUTTON_HOVER : Color = Color::rgba(0.0, 0.5, 0.0, 0.3);
+const MENU_BUTTON_CLICKED : Color = Color::rgba(0.0, 0.0, 0.5, 0.3);
 
 // ---
 // App
@@ -47,14 +53,15 @@ fn main() {
         .add_systems(PreStartup, (res_init, dialogue::res_init))
         .add_systems(Startup, (menu_init, scene_init, dialogue::box_init))
         .add_systems(Update, (
-            change_cam,
+            change_cam
+                .run_if(resource_changed::<GameState>()),
             (check_loading, )
                 .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Loading) )),
             (menu_update, )
-                .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Loading) )),
+                .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Menu) )),
             (dialogue::update, dialogue::card_update, dialogue::pick_card_update,
              dialogue::create_cards_update, dialogue::card_words_update,
-             candle_update, remie_update, player_update, transparency_update)
+             candle_update, remie_update, player_update, transparency_update, check_for_menu_update)
                 .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Play) )),
         ))
         .run();
@@ -67,13 +74,22 @@ fn main() {
 pub struct Player;
 
 #[derive(Component)]
-pub struct PlayerCam;
-
-#[derive(Component)]
-pub struct MenuCam;
-
-#[derive(Component)]
 struct Remie;
+
+#[derive(Component)]
+enum CamId {
+    Player,
+    Menu
+}
+
+#[derive(Component)]
+enum MenuButton {
+    Start,
+    Options
+}
+
+#[derive(Component)]
+struct MenuNode;
 
 // ---
 // Resources
@@ -125,6 +141,7 @@ fn res_init(mut cmd : Commands) {
 // Menu initialization
 fn menu_init(mut cmd : Commands, props : Res<Props>) {
     // Menú camera
+    let menu_pass_layer = RenderLayers::layer(1);
     cmd.spawn((
         Camera2dBundle {
             camera : Camera {
@@ -133,7 +150,8 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
             },
             ..default()
         },
-        MenuCam{}
+        menu_pass_layer,
+        CamId::Menu
     ));
 
     // Menu text style
@@ -144,7 +162,7 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
     };
 
     // Menu node
-    cmd.spawn(
+    cmd.spawn((
         NodeBundle {
             style: Style {
                 size: Size::width(Val::Percent(100.0)),
@@ -153,10 +171,12 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
                 ..default()
             },
             ..default()
-        }
-    )
+        },
+        menu_pass_layer,
+        MenuNode
+    ))
     .with_children(|parent| {
-        parent.spawn(
+        parent.spawn((
             ButtonBundle {
                 style: Style {
                     size: Size::new(Val::Px(150.0), Val::Px(65.0)),
@@ -166,8 +186,10 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
                 },
                 background_color: Color::rgb(0.1, 0.1, 0.1).into(),
                 ..default()
-            }
-        ).with_children(|parent| {
+            },
+            menu_pass_layer,
+            MenuButton::Start
+        )).with_children(|parent| {
             parent.spawn(TextBundle::from_section("Button", style.clone()));
         });
     });
@@ -197,7 +219,7 @@ fn scene_init(mut cmd : Commands,
             },
             ..default()
         },
-        PlayerCam{}
+        CamId::Player
     )).id();
 
     // Player point light
@@ -205,7 +227,7 @@ fn scene_init(mut cmd : Commands,
         PointLightBundle {
             transform : Transform::from_xyz(-0.5, 0.0, 4.0),
             point_light : PointLight {
-                color : Color::rgb(0.8, 0.5, 0.3),
+                color : MENU_BUTTON_REGULAR,
                 intensity : 500.,
                 ..default()
             },
@@ -254,22 +276,54 @@ fn check_loading(mut cmd : Commands, mut state : ResMut<GameState>, assets : Res
 
 // Change the active camera (menu / player)
 fn change_cam(state : Res<GameState>,
-              mut player_cam : Query<&mut Camera, With<PlayerCam>>,
-              mut menu_cam : Query<&mut Camera, (With<MenuCam>, Without<PlayerCam>)>) {
-    if let Ok(mut cam) = player_cam.get_single_mut() {
-        cam.is_active = matches!(*state, GameState::Play);
+              mut cameras : Query<(&mut Camera, &CamId)>,
+              mut node : Query<&mut Visibility, With<MenuNode>>) {
+    for (mut cam, cam_id) in cameras.iter_mut() {
+        match cam_id {
+            CamId::Player => cam.is_active = matches!(*state, GameState::Play),
+            CamId::Menu => cam.is_active = matches!(*state, GameState::Menu),
+        }
     }
-    if let Ok(mut cam) = menu_cam.get_single_mut() {
-        cam.is_active = matches!(*state, GameState::Menu);
-    }
+    node.iter_mut().for_each(|mut x| *x = match *state {
+        GameState::Menu => Visibility::Visible,
+        _ => Visibility::Hidden
+    })
 }
 
 // ---
 // Update systems
 
 // Main menu
-fn menu_update() {
+fn check_for_menu_update(mut state : ResMut<GameState>,
+                         keyboard : Res<Input<KeyCode>>) {
+    if keyboard.just_pressed(KeyCode::Escape) {
+        *state = GameState::Menu;
+    }
+}
 
+fn menu_update(mut state : ResMut<GameState>,
+               mut buttons : Query<(&Interaction, &mut BackgroundColor, &MenuButton), Changed<Interaction>>) {
+    for (inter, mut bg, button) in buttons.iter_mut() {
+        match *inter {
+            Interaction::Clicked => {
+                *bg = MENU_BUTTON_CLICKED.into();
+                match *button {
+                    MenuButton::Start => {
+                        *state = GameState::Play;
+                    },
+                    MenuButton::Options => {
+
+                    }
+                }
+            },
+            Interaction::Hovered => {
+                *bg = MENU_BUTTON_HOVER.into();
+            },
+            Interaction::None => {
+                *bg = MENU_BUTTON_REGULAR.into();
+            },
+        }
+    }
 }
 
 // Animate Remie

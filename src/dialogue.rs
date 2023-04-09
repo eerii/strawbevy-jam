@@ -206,7 +206,7 @@ pub fn box_init(mut cmd : Commands,
     let image_handle = images.add(image);
 
     // Dialogue text camera
-    let box_pass_layer = RenderLayers::layer(1);
+    let box_pass_layer = RenderLayers::layer(2);
     cmd.spawn((
         Camera2dBundle{
             camera_2d: Camera2d {
@@ -474,12 +474,13 @@ pub fn card_update(mut cmd : Commands,
                    state : Res<DialogueState>,
                    mut cards : Query<(Entity, &mut DialogueCard, &mut Transform), Without<Player>>,
                    mut render_layer : Local<u8>) {
-    if *render_layer == 0 { *render_layer = 1 };
+    if *render_layer == 0 { *render_layer = 2 };
 
     let n = cards.iter().count();
     for (i, (e, mut card, mut trans)) in cards.iter_mut().enumerate() {
         if !card.has_renderer {
             *render_layer += 1;
+            assert!(*render_layer < 32, "Can't have more than 32 render layers");
             card.render(*render_layer, &mut cmd, &props); 
             card.previous_trans = *trans;
             card.lerp_time = 0.;
