@@ -1,7 +1,7 @@
 // Dialogue system using the yarn spinner plugin for bevy
 
 use super::{
-    Player,
+    Player, Props, AssetsLoading,
     yarn::*
 };
 use std::{collections::HashMap, cmp::Ordering};
@@ -33,27 +33,15 @@ const NO_OPTION : usize = 1000;
 // ---
 // Resources
 
-#[derive(Resource)]
-pub struct Props {
-    box_mesh : Handle<Mesh>,
-    box_style : HashMap<&'static str, TextStyle>,
-    box_background : Handle<Image>,
-    card_mesh : Handle<Mesh>,
-    card_style : HashMap<&'static str, TextStyle>,
-    card_texture_descriptor : TextureDescriptor<'static>,
-    card_background : Handle<Image>,
-    rt_font : rusttype::Font<'static>,
-}
-
-enum CardState {
+enum CardStatus {
     New(usize),
     Card(Entity, usize),
     Played,
 }
 
-impl Default for CardState {
+impl Default for CardStatus {
     fn default() -> Self {
-        CardState::New(NO_OPTION)
+        CardStatus::New(NO_OPTION)
     }
 }
 
@@ -69,10 +57,10 @@ impl Default for WordType {
 }
 
 #[derive(Resource, Default)]
-pub struct State {
+pub struct DialogueState {
     selected_card : Option<Entity>,
     previous_card : Option<Entity>,
-    cards : HashMap<String, (CardState, Vec<WordType>)>,
+    cards : HashMap<String, (CardStatus, Vec<WordType>)>,
 }
 
 // ---
@@ -114,21 +102,12 @@ impl DialogueCard {
             text_pass_layer
         ));
 
-        // Use rusttype to get the text width
-        // There is a weird bug where if the text wraps it is not centered
-        // So we are using this to detect if it is long and to move it a few pixels
-        let width = props.rt_font
-            .layout(&self.id, rusttype::Scale::uniform(CARD_FONT_SIZE), rusttype::point(0.0, 0.0))
-            .map(|g| g.position().x + g.unpositioned().h_metrics().advance_width)
-            .last()
-            .unwrap_or(0.0);
-
         // Create image text
         self.text_renderer = Some(cmd.spawn((
             Text2dBundle {
                 text : Text::from_section(&self.id, self.style.clone()).with_alignment(TextAlignment::Center),
                 text_2d_bounds : Text2dBounds{ size : Vec2::new(CARD_TEX_SIZE.width as f32 - 48., CARD_TEX_SIZE.height as f32 - 32.) },
-                transform : Transform::from_xyz(if width > CARD_TEX_SIZE.width as f32 - 48. {6.5} else {0.5}, 64., 0.1),
+                transform : Transform::from_xyz(0.5, 64., 0.1),
                 ..default()
             },
             text_pass_layer
@@ -154,6 +133,7 @@ impl DialogueCard {
 // Resource initalization
 pub fn res_init(mut cmd : Commands,
                 assets : Res<AssetServer>,
+                mut loading : ResMut<AssetsLoading>,
                 mut fonts : ResMut<Assets<Font>>,
                 mut meshes: ResMut<Assets<Mesh>>,
                 mut yarn : ResMut<YarnManager>) {
@@ -164,7 +144,6 @@ pub fn res_init(mut cmd : Commands,
     // Fonts (Bevy and rusttype)
     let font_data = include_bytes!("../assets/fonts/ponderosa.ttf");
     let font = fonts.add(Font::try_from_bytes(font_data.to_vec()).expect("Failed to load font"));
-    let rt_font = rusttype::Font::try_from_bytes(font_data).expect("Failed to load font");
 
     // Dialogue text styles
     let mut box_style = HashMap::new();
@@ -181,7 +160,7 @@ pub fn res_init(mut cmd : Commands,
         color : Color::BLACK,
     });
     card_style.entry("varying").or_insert(TextStyle {
-        font,
+        font : font.clone(),
         font_size : CARD_FONT_SIZE,
         color : Color::BLUE,
     });
@@ -203,12 +182,14 @@ pub fn res_init(mut cmd : Commands,
     // Background images
     let box_background = assets.load("textures/dialogue.png");
     let card_background = assets.load("textures/card.png");
+    loading.0.push(box_background.clone_untyped());
+    loading.0.push(card_background.clone_untyped());
 
     // Save state
     cmd.insert_resource(Props { box_mesh, box_style, box_background,
-                                card_mesh, card_style, card_texture_descriptor, card_background, rt_font });
+                                card_mesh, card_style, card_texture_descriptor, card_background, font });
 
-    cmd.insert_resource(State::default());
+    cmd.insert_resource(DialogueState::default());
 
     // Load dialogue
     yarn.load("dialogue", &assets);
@@ -281,7 +262,7 @@ pub fn box_init(mut cmd : Commands,
 
 // Handle the changes in dialogue updates
 pub fn update(mut cmd : Commands,
-              mut state : ResMut<State>,
+              mut state : ResMut<DialogueState>,
               keyboard : Res<Input<KeyCode>>,
               mouse : Res<Input<MouseButton>>,
               asset_lines : Res<Assets<YarnLinesAsset>>,
@@ -307,10 +288,10 @@ pub fn update(mut cmd : Commands,
 
         let state_card = &mut state.cards.get_mut(&card.id);
         if let Some((st, _)) = state_card {
-            if let CardState::Card(_, opt) = st {
+            if let CardStatus::Card(_, opt) = st {
                 runner.select_option(*opt).unwrap();
                 println!("Selected option {} with card {}", opt, card.id);
-                *st = CardState::Played;
+                *st = CardStatus::Played;
             }
         }
         state.selected_card = None;
@@ -379,8 +360,8 @@ pub fn update(mut cmd : Commands,
                         let (t, w) = state.cards.entry(key.to_string()).or_default();
                         *w = words;
                         match t {
-                            CardState::New(o) => *o = opt_num,
-                            CardState::Card(_, o) => *o = opt_num,
+                            CardStatus::New(o) => *o = opt_num,
+                            CardStatus::Card(_, o) => *o = opt_num,
                             _ => ()
                         }
                         println!("Option {} with key {}", opt_num, key);
@@ -389,14 +370,14 @@ pub fn update(mut cmd : Commands,
                 // This code is sooooo ugly ugh
                 state.cards.iter_mut()
                     .filter(|(_, (card, _))| match card {
-                        CardState::New(o) => *o == NO_OPTION,
-                        CardState::Card(_, o) => *o == NO_OPTION,
+                        CardStatus::New(o) => *o == NO_OPTION,
+                        CardStatus::Card(_, o) => *o == NO_OPTION,
                         _ => false
                     })
                     .for_each(|(_, (card, _))| {
                         match card {
-                            CardState::New(o) => *o = other_opt,
-                            CardState::Card(_, o) => *o = other_opt,
+                            CardStatus::New(o) => *o = other_opt,
+                            CardStatus::Card(_, o) => *o = other_opt,
                             _ => ()
                         }
                     });
@@ -407,10 +388,10 @@ pub fn update(mut cmd : Commands,
                 match c.as_str() {
                     "discard" => {
                         state.cards.iter_mut().for_each(|(_, (card, _))| {
-                            if let CardState::Card(id, _) = card {
+                            if let CardStatus::Card(id, _) = card {
                                 cmd.entity(*id).despawn();
                             } 
-                            *card = CardState::Played;
+                            *card = CardStatus::Played;
                         });
                         state.selected_card = None;
                         state.previous_card = None;
@@ -429,12 +410,12 @@ pub fn update(mut cmd : Commands,
 // Create the cards requested
 pub fn create_cards_update(mut cmd : Commands,
                            props : Res<Props>,
-                           mut state : ResMut<State>,
+                           mut state : ResMut<DialogueState>,
                            mut images : ResMut<Assets<Image>>,
                            mut materials: ResMut<Assets<StandardMaterial>>,
                            player : Query<Entity, With<Player>>) {
     for (word, (card, _)) in state.cards.iter_mut() {
-        if let CardState::New(opt) = card {
+        if let CardStatus::New(opt) = card {
             let mut image = Image { texture_descriptor : props.card_texture_descriptor.clone(), ..default() };
             image.resize(CARD_TEX_SIZE);
             let image_handle = images.add(image);
@@ -453,19 +434,19 @@ pub fn create_cards_update(mut cmd : Commands,
                     )).id();
 
             cmd.entity(player.single()).push_children(&[id]); 
-            *card = CardState::Card(id, *opt);
+            *card = CardStatus::Card(id, *opt);
         }
     }
 }
 
 // Update the cards with new words
-pub fn card_words_update(state : ResMut<State>,
+pub fn card_words_update(state : ResMut<DialogueState>,
                          props : ResMut<Props>,
                          cards : Query<&DialogueCard>,
                          mut text : Query<&mut Text>) {
     for card in cards.iter() {
         let (st, words) = &state.cards.get(&card.id).expect("Error loading card with id");
-        if let CardState::Played = st { continue; }
+        if let CardStatus::Played = st { continue; }
 
         if let Some(rend) = card.text_renderer {
             if let Ok(mut t) = text.get_mut(rend) {
@@ -490,7 +471,7 @@ fn smoothstep(x : f32, a : f32, b : f32) -> f32 {
 pub fn card_update(mut cmd : Commands,
                    time : Res<Time>,
                    props : Res<Props>,
-                   state : Res<State>,
+                   state : Res<DialogueState>,
                    mut cards : Query<(Entity, &mut DialogueCard, &mut Transform), Without<Player>>,
                    mut render_layer : Local<u8>) {
     if *render_layer == 0 { *render_layer = 1 };
@@ -552,7 +533,7 @@ fn intersect(plane_center : Vec3, plane_normal : Vec3,
 }
 
 // Pick cards using a mouse raycaster
-pub fn pick_card_update(mut state : ResMut<State>,
+pub fn pick_card_update(mut state : ResMut<DialogueState>,
                         cam : Query<(&Camera, &GlobalTransform), With<Camera3d>>,
                         cards : Query<(Entity, &GlobalTransform), With<DialogueCard>>,
                         window : Query<&Window>,
