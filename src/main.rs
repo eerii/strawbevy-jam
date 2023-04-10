@@ -506,7 +506,7 @@ fn restart(mut cmd : Commands,
         selected_card : None,
         previous_card : None,
         cards : HashMap::new(),
-        important_decision : [None; 2]
+        ..default()
     };
 
     drinks.iter().for_each(|(x, d, c)| if d.is_some() || c.is_some() { cmd.entity(x).despawn(); });

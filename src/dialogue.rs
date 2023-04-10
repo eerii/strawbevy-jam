@@ -71,7 +71,8 @@ pub struct DialogueState {
     pub selected_card : Option<Entity>,
     pub previous_card : Option<Entity>,
     pub cards : HashMap<String, (CardStatus, Vec<WordType>)>,
-    pub important_decision : [Option<String> ; 2]
+    pub important_decision : [Option<String> ; 2],
+    pub important_id : [Option<Entity>; 2]
 }
 
 // ---
@@ -330,7 +331,7 @@ pub fn update(mut cmd : Commands,
               mut yarn : ResMut<YarnManager>,
               mut materials : ResMut<Assets<StandardMaterial>>,
               mut dialogue_box : Query<&mut Text, With<DialogueBox>>,
-              cards : Query<&DialogueCard>,
+              cards : Query<(Entity, &DialogueCard)>,
               mut wait_timer : Local<(f32, f32)>,
               mut other_option : Local<usize>) {
     // Get the assets for the dialogue manager and check that they are loaded
@@ -356,7 +357,7 @@ pub fn update(mut cmd : Commands,
     if yarn.waiting_response && mouse.just_pressed(MouseButton::Left) && state.selected_card.is_some() {
         let id = state.selected_card.unwrap();
 
-        let card = cards.get(id).expect("Error loading card with selected card id");
+        let (_, card) = cards.get(id).expect("Error loading card with selected card id");
 
         cmd.entity(id).despawn();
         yarn.waiting_response = false;
@@ -379,6 +380,34 @@ pub fn update(mut cmd : Commands,
         }
         state.selected_card = None;
         state.previous_card = None;
+
+        if yarn.important_decision {
+            let card_a = &state.important_decision[0].clone().unwrap();
+            let card_b = &state.important_decision[1].clone().unwrap();
+            // TODO: Despawn the cards
+
+            for (id, card) in cards.iter() {
+                if card.id == *card_a || card.id == *card_b {
+                    cmd.entity(id).despawn();
+                }
+            }
+
+            let card_a = state.cards.get_mut(&card_a.clone());
+            if let Some((st, _)) = card_a {
+                if let CardStatus::Card(_, _) = st {
+                    *st = CardStatus::Played; 
+                }
+            }
+
+            let card_b = state.cards.get_mut(&card_b.clone());
+            if let Some((st, _)) = card_b {
+                if let CardStatus::Card(_, _) = st {
+                    *st = CardStatus::Played; 
+                }
+            }
+
+            yarn.important_decision = false;
+        }
     }
 
     // Check if the dialogue is paused and if the user is continuing
@@ -449,14 +478,13 @@ pub fn update(mut cmd : Commands,
 
                         if l.starts_with('!') {
                             // Just two cards, hide the others
-                            if let None = state.important_decision[0] {
-                                state.important_decision[0] = Some(key[1..].to_string());
+                            if state.important_decision[0].is_none() {
+                                state.important_decision[0] = Some(key.to_string());
                             } else {
-                                state.important_decision[1] = Some(key[1..].to_string());
+                                state.important_decision[1] = Some(key.to_string());
                             }
 
                             yarn.important_decision = true;
-                            continue;
                         } 
 
                         let mut words = vec![];
@@ -667,30 +695,40 @@ pub fn card_update(mut cmd : Commands,
             card.has_renderer = true;
         }
 
-        let offset = i as f32 - (n as f32 - 1.) / 2.;
-        card.target_trans.translation = Vec3::new(
-            offset * CARD_PADDING.min(0.28 * 2.0 / n as f32),
-            -0.35 + (i as f32 / (if n > 1 {n-1} else {1}) as f32 * std::f32::consts::PI).sin() * 0.02,
-            -1. + i as f32 * 0.02 / n as f32
-        );
-        card.target_trans.rotation = Quat::from_rotation_z(offset * -0.3 / n as f32)
-            .mul_quat(Quat::from_rotation_y(-offset * 0.05 / n as f32));
-
-        if !yarn.waiting_response {
-            card.target_trans.translation += Vec3::new(0., -0.08, 0.);
-        }
-
-        if state.selected_card.is_some() && state.selected_card.unwrap() == e {
-            if yarn.waiting_response {
-                card.target_trans.translation += Vec3::new(0., 0.1, 0.05);
+        if yarn.important_decision {
+            if state.important_decision[0].is_some() && state.important_decision[0].clone().unwrap() == card.id {
+                card.target_trans.translation = Vec3::new(-0.15, 0., -1.);
+            } else if state.important_decision[1].is_some() && state.important_decision[1].clone().unwrap() == card.id {
+                card.target_trans.translation = Vec3::new(0.15, 0., -1.); 
+            } else {
+                card.target_trans.translation = Vec3::new(0., -0.8, 0.);
             }
-            if state.previous_card.is_none() || state.previous_card.unwrap() != e {
+        } else {
+            let offset = i as f32 - (n as f32 - 1.) / 2.;
+            card.target_trans.translation = Vec3::new(
+                offset * CARD_PADDING.min(0.28 * 2.0 / n as f32),
+                -0.35 + (i as f32 / (if n > 1 {n-1} else {1}) as f32 * std::f32::consts::PI).sin() * 0.02,
+                -1. + i as f32 * 0.02 / n as f32
+            );
+            card.target_trans.rotation = Quat::from_rotation_z(offset * -0.3 / n as f32)
+                .mul_quat(Quat::from_rotation_y(-offset * 0.05 / n as f32));
+
+            if !yarn.waiting_response {
+                card.target_trans.translation += Vec3::new(0., -0.08, 0.);
+            }
+
+            if state.selected_card.is_some() && state.selected_card.unwrap() == e {
+                if yarn.waiting_response {
+                    card.target_trans.translation += Vec3::new(0., 0.1, 0.05);
+                }
+                if state.previous_card.is_none() || state.previous_card.unwrap() != e {
+                    card.previous_trans = *trans;
+                    card.lerp_time = 0.;
+                }
+            } else if state.previous_card.is_some() && state.previous_card.unwrap() == e {
                 card.previous_trans = *trans;
                 card.lerp_time = 0.;
             }
-        } else if state.previous_card.is_some() && state.previous_card.unwrap() == e {
-            card.previous_trans = *trans;
-            card.lerp_time = 0.;
         }
 
         if (trans.translation - card.target_trans.translation).length() < 0.01 {
