@@ -27,6 +27,10 @@ const DIALOGUE_FONT_SIZE : f32 = 24.;
 
 const NO_OPTION : usize = 1000;
 
+const SPEAKER_REMIE : Color = Color::rgb(0.6, 1.0, 0.7);
+const SPEAKER_PLAYER : Color = Color::rgb(0.7, 0.6, 1.0);
+const SPEAKER_WAITER : Color = Color::rgb(1.0, 0.7, 0.6);
+
 // ---
 // Resources
 
@@ -149,6 +153,21 @@ pub fn res_init(mut cmd : Commands,
         font_size : DIALOGUE_FONT_SIZE,
         color : Color::WHITE,
     });
+    box_style.entry("Remie").or_insert(TextStyle {
+        font : font.clone(),
+        font_size : DIALOGUE_FONT_SIZE,
+        color : SPEAKER_REMIE,
+    });
+    box_style.entry("Player").or_insert(TextStyle {
+        font : font.clone(),
+        font_size : DIALOGUE_FONT_SIZE,
+        color : SPEAKER_PLAYER,
+    });
+    box_style.entry("Waiter").or_insert(TextStyle {
+        font : font.clone(),
+        font_size : DIALOGUE_FONT_SIZE,
+        color : SPEAKER_WAITER,
+    });
     
     let mut card_style = HashMap::new();
     card_style.entry("regular").or_insert(TextStyle {
@@ -196,7 +215,8 @@ pub fn res_init(mut cmd : Commands,
 pub fn box_init(mut cmd : Commands,
                 props : Res<Props>,
                 mut images : ResMut<Assets<Image>>,
-                mut materials : ResMut<Assets<StandardMaterial>>) {
+                mut materials : ResMut<Assets<StandardMaterial>>,
+                player : Query<Entity, With<Player>>) {
     // Create dialogue image
     let mut image = Image { texture_descriptor : props.card_texture_descriptor.clone(), ..default() };
     image.resize(DIALOGUE_TEX_SIZE);
@@ -222,7 +242,10 @@ pub fn box_init(mut cmd : Commands,
     // Dialogue box
     cmd.spawn((
         Text2dBundle {
-            text : Text::from_section("", props.box_style["regular"].clone()),
+            text : Text::from_sections([
+                TextSection::new("", props.box_style["regular"].clone()),
+                TextSection::new("", props.box_style["regular"].clone()),
+            ]),
             text_2d_bounds : Text2dBounds{ size : Vec2::new(DIALOGUE_TEX_SIZE.width as f32 - 48., DIALOGUE_TEX_SIZE.height as f32 - 32.) },
             transform : Transform::from_xyz(0.0, 0.0, 0.1),
             ..default()
@@ -240,7 +263,7 @@ pub fn box_init(mut cmd : Commands,
     ));
 
     // Actual mesh in the 3d camera
-    cmd.spawn(
+    let dial_box = cmd.spawn(
         PbrBundle {
             mesh: props.box_mesh.clone(),
             material: materials.add(StandardMaterial {
@@ -248,10 +271,11 @@ pub fn box_init(mut cmd : Commands,
                 alpha_mode: AlphaMode::Mask(0.5),
                 ..default()
             }),
-            transform: Transform::from_xyz(-5.4, 7.0, 4.5),
+            transform: Transform::from_xyz(0.0, 2.8, -10.0),
             ..default()
         },
-    );
+    ).id();
+    cmd.entity(player.single()).push_children(&[dial_box]);
 }
 
 // ---
@@ -263,6 +287,7 @@ pub fn update(mut cmd : Commands,
               mut story : ResMut<StoryState>,
               keyboard : Res<Input<KeyCode>>,
               mouse : Res<Input<MouseButton>>,
+              props : Res<Props>,
               asset_lines : Res<Assets<YarnLinesAsset>>,
               mut asset_runner : ResMut<Assets<YarnRunnerAsset>>,
               mut yarn : ResMut<YarnManager>,
@@ -316,7 +341,22 @@ pub fn update(mut cmd : Commands,
                     l.replace_range(start..end + 1, "");
                 }
 
-                dialogue_box.single_mut().sections[0].value = l;
+                let l : Vec<&str> = l.split(':').collect();
+
+                let (speaker, style) = if l.len() == 1 {
+                    println!("Warning, line without speaker");
+                    ("".to_string(), props.box_style["regular"].clone())
+                } else if !["Remie", "Player", "Waiter"].contains(&l[0]) {
+                    println!("Warning, the speaker name is misspelled {}", l[0]);
+                    (l[0].to_string() + "\n", props.box_style["regular"].clone())
+                } else {
+                    (l[0].to_string() + "\n", props.box_style[l[0]].clone())
+                };
+                let line = if l.len() == 1 { l[0].to_string() } else { l[1..].join(":") };
+
+                dialogue_box.single_mut().sections[0] = TextSection::new(speaker, style);
+                dialogue_box.single_mut().sections[1].value = line;
+
                 yarn.waiting_continue = !is_question;
             },
             ExecutionOutput::Options(opts) => {

@@ -2,6 +2,11 @@
 
 // TODO:
 // - Música
+// - Dibujar a marco y expresiones faciales
+// - En el diálogo, separar al hablante con colores, a lo mejor poner efectos
+// - Guardar los finales que desbloqueó y poner en el menú
+// - Dar más iluminación
+// - Poner bebidas en la mesa
 // - Mejorar menú
 // - Efectos especiales, polish, etc...
 
