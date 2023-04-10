@@ -6,9 +6,10 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 bevy = { git = "https://github.com/bevyengine/bevy", rev = "f0f5d79" }
+bevy_pkv = { git = "https://github.com/johanhelsing/bevy_pkv", default-features = false, features = ["sled"] }
 yarn-spinner = { git = "https://github.com/sanbox-irl/yarn-spinner" }
 console_error_panic_hook = "0.1"
 noise = "0.8"
 
 [profile.dev.package."*"]
-opt-level = 3 # High optimizaitons for libraries (such as bevy)
+opt-level = 3 # High optimizations for libraries (such as bevy)

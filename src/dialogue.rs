@@ -1,6 +1,6 @@
 // Dialogue system using the yarn spinner plugin for bevy
 
-use super::{Player, Props, AssetsLoading, StoryState, yarn::*};
+use super::{Player, Props, AssetsLoading, StoryState, PersistentStorage, smoothstep, yarn::*, NUM_ENDINGS};
 use std::{collections::HashMap, cmp::Ordering};
 use bevy::{
     prelude::*,
@@ -288,19 +288,27 @@ pub fn update(mut cmd : Commands,
               keyboard : Res<Input<KeyCode>>,
               mouse : Res<Input<MouseButton>>,
               props : Res<Props>,
+              time : Res<Time>,
+              mut storage : ResMut<PersistentStorage>,
               asset_lines : Res<Assets<YarnLinesAsset>>,
               mut asset_runner : ResMut<Assets<YarnRunnerAsset>>,
               mut yarn : ResMut<YarnManager>,
               mut dialogue_box : Query<&mut Text, With<DialogueBox>>,
-              cards : Query<&DialogueCard>) {
+              cards : Query<&DialogueCard>,
+              mut wait_timer : Local<(f32, f32)>) {
     // Get the assets for the dialogue manager and check that they are loaded
     let (runner, lines) = match get_yarn_components(&yarn, &mut asset_runner, &asset_lines) {
         None => return,
         Some(v) => v
     };
 
-    // For now just use the first response when having options
-    // This will be handled by selecting a card
+    // Advance the wait timer
+    if wait_timer.0 <= wait_timer.1 {
+        wait_timer.0 += time.delta_seconds();
+        return;
+    }
+
+    // Select a card using your mouse
     if yarn.waiting_response && mouse.just_pressed(MouseButton::Left) && state.selected_card.is_some() {
         let id = state.selected_card.unwrap();
 
@@ -423,7 +431,8 @@ pub fn update(mut cmd : Commands,
                 yarn.waiting_response = true;
             },
             ExecutionOutput::Command(c) => {
-                match c.as_str() {
+                let c : Vec<&str> = c.split(' ').collect();
+                match c[0] {
                     "discard" => {
                         state.cards.iter_mut().for_each(|(_, (card, _))| {
                             if let CardStatus::Card(id, _) = card {
@@ -439,8 +448,25 @@ pub fn update(mut cmd : Commands,
                     },
                     "marcoLeaves" => {
                         story.is_marco_here = false;
-                    }
-                    _ => println!("TODO: Command not implemented {c}")
+                    },
+                    "remieLeaves" => {
+                        story.is_remie_here = false;
+                    },
+                    "wait" => {
+                        *wait_timer = (0., if c.len() > 1 { c[1].parse::<f32>().expect("Error converting string") } else { 1. });
+                        dialogue_box.single_mut().sections[0].value = "".to_string(); 
+                        dialogue_box.single_mut().sections[1].value = "...".to_string();
+                    },
+                    "theEnd" => {
+                        assert!(c.len() == 2, "Error parsing theEnd");
+                        let num = c[1].parse::<usize>().expect("Error parsing ending number") - 1;
+                        assert!(num < NUM_ENDINGS, "There are too many endings!");
+                        story.endings[num] = true;
+                        if storage.0.set("unlocked_endings", &story.endings).is_err() {
+                            println!("Warning, problem saving unlocked endings");
+                        }
+                    },
+                    _ => println!("TODO: Command not implemented {}", c[0])
                 }
             },
             ExecutionOutput::Function(function) => {
@@ -501,14 +527,6 @@ pub fn card_words_update(state : ResMut<DialogueState>,
             }
         }
     }
-}
-
-// Smoothstep
-fn smoothstep(x : f32, a : f32, b : f32) -> f32 {
-    let t = (x - a) / (b - a);
-    if t < 0.0 { 0.0 }
-    else if t > 1.0 { 1.0 }
-    else { t * t * (3.0 - 2.0 * t) }
 }
 
 // Updates the cards position and attributes

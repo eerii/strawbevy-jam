@@ -3,7 +3,6 @@
 // TODO:
 // - Música
 // - Dibujar a marco y expresiones faciales
-// - En el diálogo, separar al hablante con colores, a lo mejor poner efectos
 // - Guardar los finales que desbloqueó y poner en el menú
 // - Dar más iluminación
 // - Poner bebidas en la mesa
@@ -22,11 +21,14 @@ use bevy::{
     window::WindowResolution,
     render::{render_resource::TextureDescriptor, view::RenderLayers}, core_pipeline::clear_color::ClearColorConfig
 };
+use bevy_pkv::PkvStore;
 
 use std::collections::HashMap;
 use noise::{Perlin, NoiseFn};
 
 // ---
+
+pub const NUM_ENDINGS : usize = 5;
 
 const MENU_BACKGROUND : Color = Color::rgb(0.05, 0.12, 0.08);
 const MENU_BUTTON_REGULAR : Color = Color::rgba(0., 0., 0., 0.2);
@@ -57,6 +59,7 @@ fn main() {
         .add_plugin(YarnPlugin)
         .insert_resource(GameState::default())
         .insert_resource(AssetsLoading::default())
+        .insert_resource(PersistentStorage(PkvStore::new("koala", "strawbevyjam")))
         .add_systems(PreStartup, (res_init, dialogue::res_init))
         .add_systems(Startup, (menu_init, scene_init, dialogue::box_init))
         .add_systems(Update, (
@@ -112,7 +115,8 @@ pub enum GameState{
 #[derive(Resource)]
 pub struct StoryState{
     is_marco_here : bool,
-    //is_remie_here : bool,
+    is_remie_here : bool,
+    endings : [bool; NUM_ENDINGS],
     //drink : Option<String>,
 }
 
@@ -134,18 +138,28 @@ pub struct AssetsLoading(Vec<HandleUntyped>);
 #[derive(Resource)]
 struct PerlinNoise(Perlin);
 
+#[derive(Resource)]
+pub struct PersistentStorage(PkvStore);
+
 // ---
 // Startup systems
 
 // Resource initialization
-fn res_init(mut cmd : Commands) {
+fn res_init(mut cmd : Commands, storage : Res<PersistentStorage>) {
     // Perlin noise resource
     cmd.insert_resource(PerlinNoise(Perlin::new(1)));
+
+    // Persistent storage
+    let mut endings : [bool; NUM_ENDINGS] = [false; NUM_ENDINGS];
+    if let Ok(unlocked) = storage.0.get::<[bool; NUM_ENDINGS]>("unlocked_endings") {
+        endings = unlocked;
+    }
 
     // Story state
     cmd.insert_resource(StoryState{
         is_marco_here : false,
-        //is_remie_here : true,
+        is_remie_here : true,
+        endings
         //drink : None,
     });
 
@@ -373,10 +387,19 @@ fn menu_update(mut state : ResMut<GameState>,
 }
 
 // Animate Remie
-fn remie_update(time : Res<Time>, mut remie : Query<&mut Transform, With<Remie>>) {
-    if let Ok(mut trans) = remie.get_single_mut() {
+fn remie_update(time : Res<Time>, story : Res<StoryState>, mut remie : Query<(&mut Transform, &mut Visibility), With<Remie>>) {
+    if let Ok((mut trans, mut visible)) = remie.get_single_mut() {
         trans.translation.y = 3.5 + (time.elapsed_seconds() * 1.5).cos() * 0.05;
+        *visible = if story.is_remie_here { Visibility::Visible } else { Visibility::Hidden };
     }
+}
+
+// Smoothstep
+pub fn smoothstep(x : f32, a : f32, b : f32) -> f32 {
+    let t = (x - a) / (b - a);
+    if t < 0.0 { 0.0 }
+    else if t > 1.0 { 1.0 }
+    else { t * t * (3.0 - 2.0 * t) }
 }
 
 // Animate player camera
@@ -389,10 +412,12 @@ fn player_update(time : Res<Time>,
             *lerp_time = (0., story.is_marco_here);
         }
 
+        let head_wobble = Vec3::new(if lerp_time.0 >= 1. { time.elapsed_seconds().sin() * 0.005 } else { 0. }, 0., 0.);
+
         if story.is_marco_here {
-            *trans = trans.looking_at(trans.translation + LOOK_REMIE.lerp(LOOK_NICO, lerp_time.0), Vec3::Y);
+            *trans = trans.looking_at(trans.translation + head_wobble + LOOK_REMIE.lerp(LOOK_NICO, smoothstep(lerp_time.0, 0., 1.)), Vec3::Y);
         } else {
-            *trans = trans.looking_at(trans.translation + LOOK_NICO.lerp(LOOK_REMIE, lerp_time.0), Vec3::Y);
+            *trans = trans.looking_at(trans.translation + head_wobble + LOOK_NICO.lerp(LOOK_REMIE, smoothstep(lerp_time.0, 0., 1.)), Vec3::Y);
         };
 
         if lerp_time.0 >= 1. { lerp_time.0 = 1.; }
