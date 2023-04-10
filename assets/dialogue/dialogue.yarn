@@ -73,7 +73,7 @@ Player: Well, not really. It's not ___.
   Remie: I don't think I quite get what you mean.
   <<wait 1>>
   Remie: You know what I just thought, sitting on this table?
-  Nico: Hmm... How much they need a renovation?
+  Player: Hmm... How much they need a renovation?
   Remie: No silly, I remembered [happy]the picture[/happy]
 <<jump CrookedPicture>>
 ===
@@ -159,7 +159,7 @@ Waiter: Be right back!
 <<wait 1>>
 Remie: So, we really are on the same bar as two years ago. 
 Player: Well, we're even on the same table.
-Remi: [happy]Of course![/happy] I love this table. Do you remember our game nights? 
+Remie: [happy]Of course![/happy] I love this table. Do you remember our game nights? 
 Player: Yes I do! And ___ 
 -> (the) hour long arguments
   <<set $anxiety to $anxiety + 1>>
@@ -414,7 +414,7 @@ Player: You are ___ and I'm...
 ===
 
 title: AfterNicoGood
-position: 1781,-268
+position: 1787,-386
 ---
 <<discard>>
 Remie: Oh, look who's coming.
@@ -440,7 +440,7 @@ Player: Well, I spent most of the time ___.
 ===
 
 title: NicoWork
-position: 2111,-265
+position: 2125,-220
 ---
 Waiter: Ah yes, that [bored]mathematician[bored] stuff.
 Remie: Marco, careful, he might divide us in half haha.
@@ -491,7 +491,9 @@ Remie: That's everything I could want.
 Player: So they're like your ___.
 -> Viena's circle
   Remie: Is Viena's circle the math freak's name for trusty people?
-  Player: Yep, they are.
+  Player: Well, it seems like Grothendieck was there at some point. 
+  Player: So yes, it is. 
+  Remie: I don't understand a word of what you're saying
 -> therapist
   Remie: No, not all.
   Remie: I have a therapist as my therapist, silly.
@@ -524,8 +526,75 @@ Player: We really should do it again.
 <<theEnd 1>>
 ===
 
+title: NicoFamily
+position: 2116,-392
+---
+Waiter: Oh how's little Dani?
+Player: He's great, doing elementary school now.
+Player: Also in love with his new ___.
+<<declare $sibling = "" as string>>
+-> brother
+  <<set $sibling to "brother">> 
+-> sister
+  <<set $sibling to "sister">>
+Waiter: Wait, another one?
+Remie: Really, you are educating them in binarism already? 
+Waiter: Haha.
+Player: Yes, we are. One thing at a time, please.
+<<if $sibling == "brother">>
+  Waiter: What's his name?
+  Player: Alexander. 
+  Player: After Grothendieck.
+  Remie: Wait, did tou really called your son after your favourite mathematician? 
+  <<wait 1>>
+  Player: Yes.
+  Waiter: Ahaha some things never change. 
+  Waiter: It's a beautiful name, by the way.
+<<else>>
+  Waiter: What's her name? 
+  Player: Kora. 
+  Remie: Well, I can forgive you for the binarism. It's a beautiful name. 
+  Player: It was Sophie's idea. 
+  Remie: She is definetly the smart one.
+<<endif>>
+Waiter: But, wait. 
+Waiter: Isn't this supposed to be good? 
+Player: Well, yes. I'm so happy to have them of course.
+Player: But things between Sophie and I are not going too well lately.
+Player: Its nothing really, but the monotony and the responsabilities are taking us down. 
+Remie: Are you with her and the kids, like, at all? 
+Player: Yeah, as much as I can. But, you know, work's hard, I don't have much time.
+Remie: I know you don't and I'm sure they know it too.
+Remie: But knowing sometimes is not enough.
+Remie: You know, my parents and I don't talk anymore.
+Remie: No since I came out.
+Remie: And it's not just because they're transphobes, but also because we didn't really have any kind of relationship before.
+Remie: It's ok not having parents, there's a life beyond family. 
+Remie: But it's also hard.
+Remie: I'm not saying you are my parents. However...
+Remie: Living your family and social relationships like "this things I do while I'm not working" is terrible.
+Remie: So maybe what you're missing is just an honest relation.
+Remie: Well, I hope I'm not upsetting you too much.
+Player: No, please, thanks for your honesty.
+Player: Sometimes I can be very stubborn.
+Waiter: Sure you can.
+Player: [ironic]Thanks[/ironic], Marco.
+Player: I whished you could have told me that before. But that's also my fault.
+Remie: Nico admitting to a mistake, that is a historical momment. 
+Waiter: Ya bet it is.
+Player: Thanks for your jokes, also please stop ahaha.
+Remie: I'm sorry, I'm sorry.
+Remie: I really missed this.
+Waiter: Well, someone needs to keep coming to this place to keep me employed.
+Waiter: Maybe ya could make a habit of it again.
+Waiter: Only saying that with a business mindset, it has nothing to do with me linking seeing you.
+Player: If you say so ahaha.
+Player: But we should do it again.
+<<theEnd 3>>
+===
+
 title: AfterNicoBad
-position: 1798,-489
+position: 2126,-54
 ---
 <<discard>>
 <<marcoComes>>
@@ -664,7 +733,8 @@ Remie: You know what, Nico?
 Remie: I really thought we could talk again, but I guess I was wrong.
 Player: I didn't mean to ___.
 -> offend (you)
-  Player: It's just a name. 
+  <<set $anxiety to $anxiety - 2>>
+  Player: It's just a name.
   Remie: You know is more than that. 
   Remie: Calling someone by their deadname [emphasis]is[/emphasis] offensive, no matter the intention. 
   Remie: Why do you think we didn't see each other in two years? 
@@ -674,10 +744,91 @@ Player: I didn't mean to ___.
   Player: I know I shouldn't have accepted your invitation.
   Remie: Give me hope? Hope for what?
   Remie: Look, I did not came here to desperatly beg be your friend again.
+  Remie: I just needed to make sure I could deal with the past. 
+  Remie: In a more phisical way than just a picture. 
+  Remie: My life is better without you.
+Player: You know? You're __.
+-> right
+  Player: Yes, I could have been better to you. 
+  Player: But I don't really know how.
+  <<if $anxiety > 5>>
+    Player: I'm sure I did many things poorly.
+    Player: But I can't understand how to do them better.
+    Remie: I don't think it is that difficult.
+    Remie: Like, to start with, you should call me by my name.
+    Remie: It's a bare minimum, Nico, for goodness sake.
+    Remie: Are you really waiting for me to explain that? 
+    Player: Yeah, isn't that why we are here?
+  <<else>>
+    Player: And that's not even trying to be an excuse.
+    Player: I'm a mess, and I can't even bring myself to treat you with respect.
+    Remie: If you are looking for pity...
+    Player: No. I'm done doing that.
+    <<jump NeutralEnding>>
+  <<endif>>
+-> wrong
+  Player: You can say that you don't need this, but you are be wrong.
+  <<set $anxiety to $anxiety + 1>>
+  Player: Of course you need it.
+  Player: That's why you set up all of this.
+  Player: I just came here out of pity.
+-> offend (ing)
+  Player: Offending me.
+  <<set $anxiety to $anxiety + 1>>
+  Remie: I am what?
+  Player: Yes, you are.
+  Player: Do you really think you can come here and say that I'm nothing?
+  Player: I'm sorry, lad, but it's clear I'm something to you.
+  Player: You wouldn't have called me here otherwise. 
+-> hope (less)
+  Player: For me.
+  Player: And I suppose for so many other people too.
+  <<set $anxiety to $anxiety + 1>>
+  Player: I don't really know why I'm still here.
+-> (in) the same place
+  Player: Just in the same place as two years ago. 
+  <<set $anxiety to $anxiety + 1>>
+  Player: You can fool yourself thinking things have changed, but it's just a lie. 
+  Player: Two years ago we broke up a livelong friendship because you weren't brave or patient enough to stay with me.
+  Player: And now you're doing exactly the same.
+  Player: You can only see your problems.
+-> all that happened
+  Player: You are the reason why we don't have a relation anymore.
+  <<set $anxiety to $anxiety + 1>>
+  Player: I know you're dealing with a lot of stuff, so what?
+  Player: Me too. We all are.
+  Player: I may have done some bad things, like everyone, but you're the only reason why a lot of people have abandoned you.
+<<jump AfterNicoBad>>
 ===
 
 title: AfterMarcoComes
-position: 1365,127
+position: 2134,116
 ---
+Hey! Thanks for playing ^-^
+I'm so sorry, this is all we got for today.
+There are still two more endings down this path, but we had stop to get to the jam's deadline.
+If you still didn't get to the other endings you can try playing again!
+Thank you again and have a beautiful day.
+<<theEnd 5>>
+===
 
+title: NeutralEnding
+position: 2130,261
+---
+Player: I understand that I am not going to heal the wounds that I made in our relationship just like that.
+Player: And I have a lot of issues that I have to work out.
+Player: You really had to put up with me today, I'm sorry.
+Remie: It's ok. I invited you here.
+Remie: I know what I was getting into.
+Remie: But please, get help, ok?
+Remie: You sound like you really need to unload some heavy stuff.
+Player: You're right. You did a lot for me.
+Remie: But I can't be the one to help you until you sort yourself out.
+Remie: You understand that, right?
+Player: Yeah... thanks.
+Remie: It was nice seing you, Nico. We should do it again.
+<<wait 1>>
+Remie: In a while.
+Remie: Take care.
+<<theEnd 4>>
 ===

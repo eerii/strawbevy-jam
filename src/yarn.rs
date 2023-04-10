@@ -34,7 +34,8 @@ pub struct YarnManager {
     pub runner : Option<Handle<YarnRunnerAsset>>,
     pub lines : Option<Handle<YarnLinesAsset>>,
     pub waiting_continue : bool,
-    pub waiting_response : bool
+    pub waiting_response : bool,
+    pub finished : bool,
 }
 
 impl YarnManager {

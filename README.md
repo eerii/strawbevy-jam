@@ -1,6 +1,6 @@
-# working title 🌸
+# we don't talk about remie 🌸
 
-(working title) is a conversation between two friends that haven't seen eachother for two years.
+**we don't talk about remie** is a conversation between two friends that haven't seen eachother for two years.
 join remie and nico as they discover what has changed, in a cards-against-humanity meets interactive novel game.
 
 choose your words carefully, since they can have unexpected side effects.
@@ -13,7 +13,7 @@ there is also a non explicit mention of suicidal thoughts.
 please take care when playing and while we tried to cover this topics the best we could,
 it is completely ok if you need to stop at any point.
 
-by your fellow enbies, josekoalas and miguel lópez golán.
+made with love by your fellow enbies, josekoalas and miguel lópez golán.
 
 ### submission for the [bevy jam](https://itch.io/jam/bevy-jam-3) #3 🕹️
 

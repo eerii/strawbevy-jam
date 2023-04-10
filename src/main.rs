@@ -68,14 +68,16 @@ fn main() {
                 .run_if(resource_changed::<GameState>()),
             change_endings
                 .run_if(resource_changed::<StoryState>()),
-            (check_loading, )
+            check_loading
                 .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Loading) )),
-            (menu_update, )
+            menu_update
                 .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Menu) )),
             (dialogue::update, dialogue::card_update, dialogue::pick_card_update,
              dialogue::create_cards_update, dialogue::card_words_update,
              candle_update, character_update, player_update, transparency_update, check_for_menu_update)
                 .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Play) )),
+            restart
+                .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Restart) )),
         ))
         .run();
 }
@@ -119,6 +121,7 @@ pub enum GameState{
     Loading,
     Menu,
     Play,
+    Restart,
 }
 
 #[derive(Resource)]
@@ -127,7 +130,8 @@ pub struct StoryState{
     is_remie_here : bool,
     endings : [bool; NUM_ENDINGS],
     selected_options : HashMap<u64, Vec<String>>,
-    current_question : u64
+    current_question : u64,
+    the_end : bool,
 }
 
 #[derive(Resource)]
@@ -177,7 +181,7 @@ fn res_init(mut cmd : Commands, storage : Res<PersistentStorage>) {
         endings,
         selected_options,
         current_question : 0,
-        //drink : None,
+        the_end : false
     });
 
     // Player
@@ -382,10 +386,16 @@ fn change_cam(state : Res<GameState>,
 }
 
 // Update the endings in the menu
-fn change_endings(story : Res<StoryState>, mut text : Query<&mut Text, With<MenuEndings>>) {
+fn change_endings(story : Res<StoryState>, 
+                  mut state : ResMut<GameState>,
+                  mut text : Query<&mut Text, With<MenuEndings>>) {
     if let Ok(mut text) = text.get_single_mut() {
         let endings = story.endings.iter().filter(|x| **x).count();
         text.sections[0].value = format!("Discovered {}/{} endings", endings, NUM_ENDINGS);
+    }
+
+    if story.the_end {
+        *state = GameState::Restart;
     }
 }
 
@@ -481,4 +491,29 @@ fn transparency_update(mut materials : ResMut<Assets<StandardMaterial>>, mut don
         }
         *done = true;
     }
+}
+
+fn restart(mut cmd : Commands,
+           mut state : ResMut<GameState>,
+           mut story : ResMut<StoryState>,
+           mut yarn : ResMut<yarn::YarnManager>,
+           asset_lines : Res<Assets<yarn::YarnLinesAsset>>,
+           mut asset_runner : ResMut<Assets<yarn::YarnRunnerAsset>>,
+           drinks : Query<(Entity, Option<&dialogue::Drinks>, Option<&dialogue::DialogueCard>)>) {
+    story.is_marco_here = false;
+    story.is_remie_here = true;
+    story.the_end = false;
+    yarn.finished = false;
+
+    drinks.iter().for_each(|(x, d, c)| if d.is_some() || c.is_some() { cmd.entity(x).despawn(); });
+
+    let (runner, _) = match yarn::get_yarn_components(&yarn, &mut asset_runner, &asset_lines) {
+        None => return,
+        Some(v) => v
+    };
+    if runner.set_node("Start").is_err() {
+        println!("Warning, can't restart");
+    }
+
+    *state = GameState::Menu;
 }

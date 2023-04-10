@@ -137,6 +137,9 @@ impl DialogueCard {
     }
 }
 
+#[derive(Component)]
+pub struct Drinks;
+
 // ---
 // Startup systems
 
@@ -335,6 +338,13 @@ pub fn update(mut cmd : Commands,
         Some(v) => v
     };
 
+    if yarn.finished {
+        if keyboard.just_pressed(KeyCode::Space) {
+            story.the_end = true;
+        }
+        return;
+    }
+
     // Advance the wait timer
     if wait_timer.0 <= wait_timer.1 {
         wait_timer.0 += time.delta_seconds();
@@ -507,7 +517,7 @@ pub fn update(mut cmd : Commands,
                                 };
 
                                 // Remie's drink
-                                cmd.spawn(
+                                cmd.spawn((
                                     PbrBundle {
                                         mesh: props.card_mesh.clone(),
                                         material: materials.add(StandardMaterial {
@@ -519,11 +529,12 @@ pub fn update(mut cmd : Commands,
                                             .with_rotation(Quat::from_rotation_y(-0.2))
                                             .with_scale(Vec3::splat(2.5)),
                                         ..default()
-                                    }
-                                );
+                                    },
+                                    Drinks{}
+                                ));
 
                                 // Player's drink
-                                cmd.spawn(
+                                cmd.spawn((
                                     PbrBundle {
                                         mesh: props.card_mesh.clone(),
                                         material: materials.add(StandardMaterial {
@@ -535,8 +546,9 @@ pub fn update(mut cmd : Commands,
                                             .with_rotation(Quat::from_rotation_y(-0.4))
                                             .with_scale(Vec3::splat(2.5)),
                                         ..default()
-                                    }
-                                );
+                                    },
+                                    Drinks{}
+                                ));
                             }
                         }
                     },
@@ -556,6 +568,9 @@ pub fn update(mut cmd : Commands,
                         if storage.0.set("unlocked_endings", &story.endings).is_err() {
                             println!("Warning, problem saving unlocked endings");
                         }
+                        dialogue_box.single_mut().sections[0].value = "".to_string(); 
+                        dialogue_box.single_mut().sections[1].value = "the end... or is it".to_string();
+                        yarn.finished = true;
                     },
                     _ => println!("TODO: Command not implemented {}", c[0])
                 }
