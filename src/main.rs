@@ -2,10 +2,10 @@
 
 // TODO:
 // - Música
-// - Dibujar a marco y expresiones faciales
-// - Guardar los finales que desbloqueó y poner en el menú
-// - Dar más iluminación
-// - Poner bebidas en la mesa
+// - Text 2 speech ally
+// - Luces cambian con ansiedad
+// - Expresiones faciales
+// - The end (finish and start over)
 // - Mejorar menú
 // - Efectos especiales, polish, etc...
 
@@ -19,7 +19,8 @@ use yarn::YarnPlugin;
 use bevy::{
     prelude::*,
     window::WindowResolution,
-    render::{render_resource::TextureDescriptor, view::RenderLayers}, core_pipeline::clear_color::ClearColorConfig
+    render::{render_resource::TextureDescriptor, view::RenderLayers},
+    core_pipeline::clear_color::ClearColorConfig
 };
 use bevy_pkv::PkvStore;
 
@@ -65,13 +66,15 @@ fn main() {
         .add_systems(Update, (
             change_cam
                 .run_if(resource_changed::<GameState>()),
+            change_endings
+                .run_if(resource_changed::<StoryState>()),
             (check_loading, )
                 .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Loading) )),
             (menu_update, )
                 .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Menu) )),
             (dialogue::update, dialogue::card_update, dialogue::pick_card_update,
              dialogue::create_cards_update, dialogue::card_words_update,
-             candle_update, remie_update, player_update, transparency_update, check_for_menu_update)
+             candle_update, character_update, player_update, transparency_update, check_for_menu_update)
                 .run_if(resource_exists::<GameState>().and_then(|state : Res<GameState>| matches!(*state, GameState::Play) )),
         ))
         .run();
@@ -84,7 +87,10 @@ fn main() {
 pub struct Player;
 
 #[derive(Component)]
-struct Remie;
+enum Character {
+    Remie,
+    Marco
+}
 
 #[derive(Component)]
 enum CamId {
@@ -100,6 +106,9 @@ enum MenuButton {
 
 #[derive(Component)]
 struct MenuNode;
+
+#[derive(Component)]
+struct MenuEndings;
 
 // ---
 // Resources
@@ -117,7 +126,8 @@ pub struct StoryState{
     is_marco_here : bool,
     is_remie_here : bool,
     endings : [bool; NUM_ENDINGS],
-    //drink : Option<String>,
+    selected_options : HashMap<u64, Vec<String>>,
+    current_question : u64
 }
 
 #[derive(Resource)]
@@ -129,6 +139,7 @@ pub struct Props {
     card_style : HashMap<&'static str, TextStyle>,
     card_texture_descriptor : TextureDescriptor<'static>,
     card_background : Handle<Image>,
+    drink_textures : [Handle<Image>; 3],
     font : Handle<Font>,
 }
 
@@ -151,15 +162,21 @@ fn res_init(mut cmd : Commands, storage : Res<PersistentStorage>) {
 
     // Persistent storage
     let mut endings : [bool; NUM_ENDINGS] = [false; NUM_ENDINGS];
+    let mut selected_options : HashMap<u64, Vec<String>> = HashMap::new();
     if let Ok(unlocked) = storage.0.get::<[bool; NUM_ENDINGS]>("unlocked_endings") {
         endings = unlocked;
+    }
+    if let Ok(options) = storage.0.get::<HashMap<u64, Vec<String>>>("selected_options") {
+        selected_options = options;
     }
 
     // Story state
     cmd.insert_resource(StoryState{
         is_marco_here : false,
         is_remie_here : true,
-        endings
+        endings,
+        selected_options,
+        current_question : 0,
         //drink : None,
     });
 
@@ -203,6 +220,11 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
         font_size: 48.0,
         color: Color::rgb(0.9, 0.9, 0.9),
     };
+    let small_style = TextStyle {
+        font: props.font.clone(),
+        font_size: 16.0,
+        color: Color::rgb(0.9, 0.9, 0.9),
+    };
 
     // Menu node
     cmd.spawn((
@@ -222,7 +244,7 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
     ))
     .with_children(|parent| {
         parent.spawn(
-            TextBundle::from_section("Working Title", title_style.clone())
+            TextBundle::from_section("Working Title", title_style)
         );
 
         let button_flex_style = Style {
@@ -253,6 +275,11 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
         )).with_children(|parent| {
             parent.spawn(TextBundle::from_section("Options", button_style));
         });
+
+        parent.spawn((
+            TextBundle::from_section(format!("Discovered 0/{} endings", NUM_ENDINGS), small_style),
+            MenuEndings{}
+        ));
     });
 }
 
@@ -282,20 +309,7 @@ fn scene_init(mut cmd : Commands,
         },
         CamId::Player
     )).id();
-
-    // Player point light
-    let player_light = cmd.spawn(
-        PointLightBundle {
-            transform : Transform::from_xyz(-0.5, 0.0, 4.0),
-            point_light : PointLight {
-                color : MENU_BUTTON_REGULAR,
-                intensity : 500.,
-                ..default()
-            },
-            ..default()
-        }
-    ).id();
-    cmd.entity(player.single()).push_children(&[player_cam, player_light]);
+    cmd.entity(player.single()).push_children(&[player_cam]);
 
     // Remie character
     let remie = assets.load("textures/remie.png");
@@ -310,7 +324,23 @@ fn scene_init(mut cmd : Commands,
             transform : Transform::from_xyz(-5.4, 3.5, 4.0),
             ..default()
         },
-        Remie {}
+        Character::Remie
+    ));
+
+    // Marco character
+    let marco = assets.load("textures/marco.png");
+    loading.0.push(marco.clone_untyped());
+    cmd.spawn((
+        PbrBundle {
+            mesh : meshes.add(Mesh::from(shape::Quad::new(Vec2::new(3.0, 4.5)))),
+            material : materials.add(StandardMaterial {
+                base_color_texture : Some(marco),
+                ..default()
+            }),
+            transform : Transform::from_xyz(-1.0, 3.5, 5.0).with_rotation(Quat::from_rotation_y(-0.3)),
+            ..default()
+        },
+        Character::Marco
     ));
 
     // Load scene from gltf (exported from Blender)
@@ -351,6 +381,14 @@ fn change_cam(state : Res<GameState>,
     })
 }
 
+// Update the endings in the menu
+fn change_endings(story : Res<StoryState>, mut text : Query<&mut Text, With<MenuEndings>>) {
+    if let Ok(mut text) = text.get_single_mut() {
+        let endings = story.endings.iter().filter(|x| **x).count();
+        text.sections[0].value = format!("Discovered {}/{} endings", endings, NUM_ENDINGS);
+    }
+}
+
 // ---
 // Update systems
 
@@ -386,11 +424,14 @@ fn menu_update(mut state : ResMut<GameState>,
     }
 }
 
-// Animate Remie
-fn remie_update(time : Res<Time>, story : Res<StoryState>, mut remie : Query<(&mut Transform, &mut Visibility), With<Remie>>) {
-    if let Ok((mut trans, mut visible)) = remie.get_single_mut() {
-        trans.translation.y = 3.5 + (time.elapsed_seconds() * 1.5).cos() * 0.05;
-        *visible = if story.is_remie_here { Visibility::Visible } else { Visibility::Hidden };
+// Animate Characters
+fn character_update(time : Res<Time>, story : Res<StoryState>, mut characters : Query<(&mut Transform, &mut Visibility, &Character)>) {
+    for (mut trans, mut visible, character) in characters.iter_mut() {
+        trans.translation.y = 3.5 + (time.elapsed_seconds() * if let Character::Remie = character {1.5} else {1.8}).cos() * 0.05;
+        *visible = match character {
+            Character::Remie => if story.is_remie_here { Visibility::Visible } else { Visibility::Hidden },
+            Character::Marco => if story.is_marco_here { Visibility::Visible } else { Visibility::Hidden },
+        }
     }
 }
 
@@ -427,7 +468,7 @@ fn player_update(time : Res<Time>,
 
 // Also animate the candle lighs with flicker
 fn candle_update(time : Res<Time>, perlin : Res<PerlinNoise>, mut lights : Query<&mut PointLight>) {
-    for mut light in lights.iter_mut().filter(|x| x.intensity < 500.) {
+    for mut light in lights.iter_mut().filter(|x| x.intensity < 800.) {
         light.intensity = 100. + 40. * perlin.0.get([3. * time.elapsed_seconds() as f64, 0.0]) as f32;
     }
 }

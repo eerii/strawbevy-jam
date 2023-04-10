@@ -118,7 +118,7 @@ position: -95,65
 Remie: I'm having the same! I recently developed an obsession with [happy]orange juice[/happy]. 
 Waiter: Two orange juices right up! I'm defenitly sitting with both of ya as soon as I can. 
 Player: Please do!
-<<marcoLeaves>>
+<<marcoLeaves drinks>>
 <<wait 1>> // Wait for a bit
 Player: So... An obsession with orange juice? 
 Remie: Yep! Somehow this drink always puts me at ease. 
@@ -155,7 +155,7 @@ Remie: I'm having an orange juice Marco, thanks.
   Waiter: So, an orange juice, an... imma bring you a glass of water, and some tea I gotta spill. 
 <<endif>>
 Waiter: Be right back!
-<<marcoLeaves>>
+<<marcoLeaves drinks>>
 <<wait 1>>
 Remie: So, we really are on the same bar as two years ago. 
 Player: Well, we're even on the same table.
@@ -166,10 +166,10 @@ Player: Yes I do! And ___
   Remie: Those... I guess we can get really stubobrn.
 -> (the) band performances
   Remie: Shut up! Those really were so funny.
--> (the) good moment(s)
+-> (the) good moment (s)
   Remie: Yeah, we got plenty of those, didn't we?
   <<set $anxiety to $anxiety - 1>>
--> (the) busy day(s) | (the) calm day(s) | (the) rainy day(s) | (the) sunny day(s)
+-> (the) busy day (s) | (the) calm day (s) | (the) rainy day (s) | (the) sunny day (s)
   Remie: Those were the days, huh?
 -> other
   <<set $nonsense to $nonsense + 1>>
@@ -642,14 +642,16 @@ Waiter: Hey guys! I didn't think I would see ya both together again!
   Remie: I'm having an orange juice please.
   Player: I'll have ___.
   -> (the) same
+    <<set $drink to "orangejuice">>
     Remie: You also like orange juice?
     Player: It's not my favorite, but I don't want to drink alcohol.
   -> (a) beer
+    <<set $drink to "beer">>
     <<set $alcohol to 1>>
     Remie: It seems like the picture is not the only thing that stays the same.
   Waiter: Will be with ya as soon as I can.
   Player: It's really nice to see you, Marco.
-  <<marcoLeaves>>
+  <<marcoLeaves drinks>>
   <<wait 1>>
   <<jump AfterMarcoComes>>
 <<endif>>

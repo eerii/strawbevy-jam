@@ -1,7 +1,7 @@
 // Dialogue system using the yarn spinner plugin for bevy
 
 use super::{Player, Props, AssetsLoading, StoryState, PersistentStorage, smoothstep, yarn::*, NUM_ENDINGS};
-use std::{collections::HashMap, cmp::Ordering};
+use std::{collections::{HashMap, hash_map::DefaultHasher}, cmp::Ordering, hash::{Hash, Hasher}, fmt::{Formatter, Debug}};
 use bevy::{
     prelude::*,
     core_pipeline::clear_color::ClearColorConfig,
@@ -25,8 +25,6 @@ const DIALOGUE_TEX_SIZE : Extent3d = Extent3d { width: 768, height: 192, depth_o
 const DIALOGUE_MESH_SIZE : Vec2 = Vec2::new(6.0, 1.5);
 const DIALOGUE_FONT_SIZE : f32 = 24.;
 
-const NO_OPTION : usize = 1000;
-
 const SPEAKER_REMIE : Color = Color::rgb(0.6, 1.0, 0.7);
 const SPEAKER_PLAYER : Color = Color::rgb(0.7, 0.6, 1.0);
 const SPEAKER_WAITER : Color = Color::rgb(1.0, 0.7, 0.6);
@@ -35,25 +33,36 @@ const SPEAKER_WAITER : Color = Color::rgb(1.0, 0.7, 0.6);
 // Resources
 
 enum CardStatus {
-    New(usize),
-    Card(Entity, usize),
+    New(Option<usize>),
+    Card(Entity, Option<usize>),
     Played,
 }
 
 impl Default for CardStatus {
     fn default() -> Self {
-        CardStatus::New(NO_OPTION)
+        CardStatus::New(None)
     }
 }
 
 enum WordType {
     Regular(String),
     Varying(String),
+    PreviouslySelected(String),
 }
 
 impl Default for WordType {
     fn default() -> Self {
         WordType::Regular(String::new())
+    }
+}
+
+impl Debug for WordType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            WordType::Regular(s) => write!(f, "Regular({})", s),
+            WordType::Varying(s) => write!(f, "Varying({})", s),
+            WordType::PreviouslySelected(s) => write!(f, "PreviouslySelected({})", s),
+        }
     }
 }
 
@@ -178,7 +187,12 @@ pub fn res_init(mut cmd : Commands,
     card_style.entry("varying").or_insert(TextStyle {
         font : font.clone(),
         font_size : CARD_FONT_SIZE,
-        color : Color::BLUE,
+        color : Color::rgb(0.3, 0.3, 0.7),
+    });
+    card_style.entry("previously_selected").or_insert(TextStyle {
+        font : font.clone(),
+        font_size : CARD_FONT_SIZE,
+        color : Color::rgb(0.05, 0.25, 0.05),
     });
 
     // Card texture properties
@@ -201,9 +215,20 @@ pub fn res_init(mut cmd : Commands,
     loading.0.push(box_background.clone_untyped());
     loading.0.push(card_background.clone_untyped());
 
+    // Drink images
+    let drink_textures = [
+        assets.load("textures/orange_juice.png"),
+        assets.load("textures/beer.png"),
+        assets.load("textures/water.png")
+    ];
+    for drink in drink_textures.iter() {
+        loading.0.push(drink.clone_untyped());
+    }
+
     // Save state
     cmd.insert_resource(Props { box_mesh, box_style, box_background,
-                                card_mesh, card_style, card_texture_descriptor, card_background, font });
+                                card_mesh, card_style, card_texture_descriptor, card_background,
+                                drink_textures, font });
 
     cmd.insert_resource(DialogueState::default());
 
@@ -281,6 +306,12 @@ pub fn box_init(mut cmd : Commands,
 // ---
 // Update systems
 
+fn hash_obj<T>(obj : T) -> u64 where T : Hash {
+    let mut h = DefaultHasher::new();
+    obj.hash(&mut h);
+    h.finish()
+}
+
 // Handle the changes in dialogue updates
 pub fn update(mut cmd : Commands,
               mut state : ResMut<DialogueState>,
@@ -293,9 +324,11 @@ pub fn update(mut cmd : Commands,
               asset_lines : Res<Assets<YarnLinesAsset>>,
               mut asset_runner : ResMut<Assets<YarnRunnerAsset>>,
               mut yarn : ResMut<YarnManager>,
+              mut materials : ResMut<Assets<StandardMaterial>>,
               mut dialogue_box : Query<&mut Text, With<DialogueBox>>,
               cards : Query<&DialogueCard>,
-              mut wait_timer : Local<(f32, f32)>) {
+              mut wait_timer : Local<(f32, f32)>,
+              mut other_option : Local<usize>) {
     // Get the assets for the dialogue manager and check that they are loaded
     let (runner, lines) = match get_yarn_components(&yarn, &mut asset_runner, &asset_lines) {
         None => return,
@@ -320,9 +353,17 @@ pub fn update(mut cmd : Commands,
         let state_card = &mut state.cards.get_mut(&card.id);
         if let Some((st, _)) = state_card {
             if let CardStatus::Card(_, opt) = st {
-                runner.select_option(*opt).unwrap();
+                let opt = if opt.is_some() {opt.unwrap()} else {*other_option};
+                runner.select_option(opt).unwrap();
                 println!("Selected option {} with card {}", opt, card.id);
                 *st = CardStatus::Played;
+
+                let question = story.current_question;
+                let opts = story.selected_options.entry(question).or_insert(vec![]);
+                opts.push(card.id.clone());
+                if storage.0.set("selected_options", &story.selected_options).is_err() {
+                    println!("Warning, problem saving selected options");
+                };
             }
         }
         state.selected_card = None;
@@ -362,20 +403,30 @@ pub fn update(mut cmd : Commands,
                 };
                 let line = if l.len() == 1 { l[0].to_string() } else { l[1..].join(":") };
 
+                if is_question {
+                    story.current_question = hash_obj(&line);
+                }
+
                 dialogue_box.single_mut().sections[0] = TextSection::new(speaker, style);
                 dialogue_box.single_mut().sections[1].value = line;
 
                 yarn.waiting_continue = !is_question;
             },
             ExecutionOutput::Options(opts) => {
-                let mut other_opt = 0;
+                for (_, (t, _)) in state.cards.iter_mut() {
+                    if let CardStatus::Card(_, opt) = t {
+                        *opt = None;
+                    }
+                }
+                let question = story.current_question;
+
                 for (opt_num, opt) in opts.iter().enumerate() {
                     let line = lines.line(opt.line()).expect("Failed to parse yarn option");
 
                     for l in line.split('|') {
                         let l = l.trim();
                         if l == "other" {
-                            other_opt = opt_num;
+                            *other_option = opt_num;
                             continue;
                         }
                         if l.starts_with('!') {
@@ -386,6 +437,7 @@ pub fn update(mut cmd : Commands,
                             .filter(|x| !x.contains('('))
                             .collect();
                         let key = key.join(" ");
+                        let prev_sel = story.selected_options.entry(question).or_default().contains(&key);
 
                         let mut words = vec![];
                         for w in l.split(' ') {
@@ -393,40 +445,29 @@ pub fn update(mut cmd : Commands,
                                 words.push(WordType::Varying(w.replace(['(', ')'], "") + " "));
                                 continue;
                             }
-                            if words.last().is_some() && matches!(words.last().unwrap(), WordType::Regular(_)) {
-                                if let WordType::Regular(s) = words.last_mut().unwrap() {
-                                    s.push(' ');
-                                    s.push_str(w);
+                            if words.last().is_some() && !matches!(words.last().unwrap(), WordType::Varying(_)) {
+                                match words.last_mut().unwrap() {
+                                    WordType::Regular(s) => { s.push(' '); s.push_str(w); },
+                                    WordType::PreviouslySelected(s) => { s.push(' '); s.push_str(w); },
+                                    _ => ()
                                 }
+                            } else if prev_sel {
+                                words.push(WordType::PreviouslySelected(w.to_string()));
                             } else {
                                 words.push(WordType::Regular(w.to_string()));
                             }
                         }
 
-                        let (t, w) = state.cards.entry(key.to_string()).or_default();
+                        let (t, w) = state.cards.entry(key.to_string()).or_default();                        
                         *w = words;
                         match t {
-                            CardStatus::New(o) => *o = opt_num,
-                            CardStatus::Card(_, o) => *o = opt_num,
+                            CardStatus::New(o) => *o = Some(opt_num),
+                            CardStatus::Card(_, o) => *o = Some(opt_num),
                             _ => ()
                         }
                         println!("Option {} with key {}", opt_num, key);
                     }
                 }
-                // This code is sooooo ugly ugh
-                state.cards.iter_mut()
-                    .filter(|(_, (card, _))| match card {
-                        CardStatus::New(o) => *o == NO_OPTION,
-                        CardStatus::Card(_, o) => *o == NO_OPTION,
-                        _ => false
-                    })
-                    .for_each(|(_, (card, _))| {
-                        match card {
-                            CardStatus::New(o) => *o = other_opt,
-                            CardStatus::Card(_, o) => *o = other_opt,
-                            _ => ()
-                        }
-                    });
 
                 yarn.waiting_response = true;
             },
@@ -442,12 +483,62 @@ pub fn update(mut cmd : Commands,
                         });
                         state.selected_card = None;
                         state.previous_card = None;
+
+                        dialogue_box.single_mut().sections[0].value = "".to_string(); 
+                        dialogue_box.single_mut().sections[1].value = "New act (cards are discarded)".to_string();
+
+                        yarn.waiting_continue = true;
                     },
                     "marcoComes" => {
                         story.is_marco_here = true;
                     },
                     "marcoLeaves" => {
                         story.is_marco_here = false;
+                        if c.len() == 2 && c[1] == "drinks" {
+                            if !yarn.storage.contains_key("$drink") {
+                                println!("Warning, no drinks selected");
+                            } else {
+                                let drink_tex = match yarn.storage.get("$drink").unwrap().to_string().as_str() {
+                                    "orangejuice" => props.drink_textures[0].clone(),
+                                    "beer" => props.drink_textures[1].clone(),
+                                    "water" => props.drink_textures[2].clone(),
+                                    "weird" => props.drink_textures[2].clone(),
+                                    _ => { println!("Warning, unsupported drink"); props.drink_textures[2].clone() }
+                                };
+
+                                // Remie's drink
+                                cmd.spawn(
+                                    PbrBundle {
+                                        mesh: props.card_mesh.clone(),
+                                        material: materials.add(StandardMaterial {
+                                            base_color_texture : Some(props.drink_textures[0].clone()),
+                                            alpha_mode: AlphaMode::Mask(0.5),
+                                            ..default()
+                                        }),
+                                        transform: Transform::from_xyz(-4.5, 4.0, 9.5)
+                                            .with_rotation(Quat::from_rotation_y(-0.2))
+                                            .with_scale(Vec3::splat(2.5)),
+                                        ..default()
+                                    }
+                                );
+
+                                // Player's drink
+                                cmd.spawn(
+                                    PbrBundle {
+                                        mesh: props.card_mesh.clone(),
+                                        material: materials.add(StandardMaterial {
+                                            base_color_texture : Some(drink_tex),
+                                            alpha_mode: AlphaMode::Mask(0.5),
+                                            ..default()
+                                        }),
+                                        transform: Transform::from_xyz(-4.0, 4.0, 10.7)
+                                            .with_rotation(Quat::from_rotation_y(-0.4))
+                                            .with_scale(Vec3::splat(2.5)),
+                                        ..default()
+                                    }
+                                );
+                            }
+                        }
                     },
                     "remieLeaves" => {
                         story.is_remie_here = false;
@@ -523,6 +614,7 @@ pub fn card_words_update(state : ResMut<DialogueState>,
                 t.sections = words.iter().map(|x| match x {
                     WordType::Regular(w) => TextSection::new(w, props.card_style["regular"].clone()),
                     WordType::Varying(w) => TextSection::new(w, props.card_style["varying"].clone()),
+                    WordType::PreviouslySelected(w) => TextSection::new(w, props.card_style["previously_selected"].clone()),
                 }).collect();
             }
         }
@@ -534,6 +626,7 @@ pub fn card_update(mut cmd : Commands,
                    time : Res<Time>,
                    props : Res<Props>,
                    state : Res<DialogueState>,
+                   yarn : Res<YarnManager>,
                    mut cards : Query<(Entity, &mut DialogueCard, &mut Transform), Without<Player>>,
                    mut render_layer : Local<u8>) {
     if *render_layer == 0 { *render_layer = 2 };
@@ -558,8 +651,14 @@ pub fn card_update(mut cmd : Commands,
         card.target_trans.rotation = Quat::from_rotation_z(offset * -0.3 / n as f32)
             .mul_quat(Quat::from_rotation_y(-offset * 0.05 / n as f32));
 
+        if !yarn.waiting_response {
+            card.target_trans.translation += Vec3::new(0., -0.08, 0.);
+        }
+
         if state.selected_card.is_some() && state.selected_card.unwrap() == e {
-            card.target_trans.translation += Vec3::new(0., 0.1, 0.05);
+            if yarn.waiting_response {
+                card.target_trans.translation += Vec3::new(0., 0.1, 0.05);
+            }
             if state.previous_card.is_none() || state.previous_card.unwrap() != e {
                 card.previous_trans = *trans;
                 card.lerp_time = 0.;

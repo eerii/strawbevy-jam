@@ -27,11 +27,15 @@ source code at: https://github.com/josekoalas/strawbevy-jam
 
 ### using 💖
 
-- [bevy](https://github.com/bevyengine/bevy) game engine v0.11-dev
-- awesome [yarn spinner](https://github.com/sanbox-irl/yarn-spinner) bindings by sanbox-irl 
-- console_error_panic_hook and noise crates
-- ponderosa font
-- the bevy [project template](https://github.com/bevyengine/bevy_github_ci_template) with ci
+- [bevy](https://github.com/bevyengine/bevy) game engine v0.11-dev (MIT, Apache 2.0)
+- [bevy_pkv](https://github.com/johanhelsing/bevy_pkv) for saving state (MIT, Apache 2.0)
+- awesome [yarn spinner](https://github.com/sanbox-irl/yarn-spinner) bindings by sanbox-irl (MIT)
+- [console_error_panic_hook](https://github.com/rustwasm/console_error_panic_hook) and [noise](https://github.com/razaekel/noise-rs) crates (MIT, Apache 2.0)
+- [ponderosa](https://www.1001fonts.com/ponderosa-font.html) font (Custom, free for commercial/personal use, share alike)
+- the bevy [project template](https://github.com/bevyengine/bevy_github_ci_template) with ci (MIT, Apache 2.0)
+- [aseprite](https://www.aseprite.org) for pixel art
+- [blender](https://www.blender.org) for 3d modeling / level design
+- [audacity](https://github.com/audacity/audacity) to create audio
 
 ### license 📝
 
