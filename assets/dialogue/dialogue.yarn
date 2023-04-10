@@ -12,6 +12,15 @@ position: -583,-20
 <<declare $deadname = false as bool>>
 <<declare $weather = "" as string>>
 <<declare $drink = "" as string>>
+<<set $anxiety to 0>>
+<<set $offense to 0>>
+<<set $nonsense to 0>>
+<<set $alcohol to 0>>
+<<set $busy_work to false>>
+<<set $talk_about_nico to false>>
+<<set $deadname to false>>
+<<set $weather to "">>
+<<set $drink to "">>
 // Start
 Remie: Hey! I-it's been a while.
 Player: Yeah, thanks for coming on ___.
@@ -174,7 +183,7 @@ Player: Yes I do! And ___
 -> other
   <<set $nonsense to $nonsense + 1>>
   Remie: I'm having a hard time remembering that.
-Player: It seems like ___ ago
+Player: It seems like ___ ago.
 -> (a) long time
   <<set $anxiety to $anxiety + 1>>
   Remie: Does it? For me is an everyday thing, after all, I see the picture every morning.
@@ -659,8 +668,7 @@ Player: So you still have it ___.
   Remie: I was close, and I was tempted to leave it behind when I moved out.
   Remie: Now I have this nice job, and a [proud]supportive[/proud] group of friends.
   Remie: In this time when we didn't see each other I made myself a life, one worth living.
-  Remie: That picture reminds me:
-  Remie: "You can look at the past".
+  Remie: That picture reminds me that you can look at the past.
   Remie: That's why I invited you here today.
   <<jump LookDeadname>>
 ===

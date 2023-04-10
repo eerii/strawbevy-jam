@@ -5,7 +5,6 @@
 // - Text 2 speech ally
 // - Luces cambian con ansiedad
 // - Expresiones faciales
-// - The end (finish and start over)
 // - Mejorar menú
 // - Efectos especiales, polish, etc...
 
@@ -15,6 +14,7 @@ mod dialogue;
 // ---
 
 use yarn::YarnPlugin;
+use yarn_spinner::YarnValue;
 
 use bevy::{
     prelude::*,
@@ -37,6 +37,9 @@ const MENU_BUTTON_HOVER : Color = Color::rgba(0.2, 0.5, 0.3, 0.05);
 
 const LOOK_REMIE : Vec3 = Vec3::new(0.0, -0.2, -1.0);
 const LOOK_NICO : Vec3 = Vec3::new(0.2, -0.2, -1.0);
+
+const LIGHT_ANXIETY : Vec4 = Vec4::new(0.5, 0.5, 1.0, 1.0);
+const LIGHT_GOOD : Vec4 = Vec4::new(1.0, 0.7, 0.5, 1.0);
 
 // ---
 // App
@@ -103,7 +106,6 @@ enum CamId {
 #[derive(Component)]
 enum MenuButton {
     Start,
-    Options
 }
 
 #[derive(Component)]
@@ -238,7 +240,7 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
                 align_items : AlignItems::Center,
                 justify_content : JustifyContent::Center,
                 flex_direction: FlexDirection::Column,
-                gap : Size::new(Val::Auto, Val::Px(32.0)),
+                gap : Size::new(Val::Auto, Val::Px(48.0)),
                 ..default()
             },
             ..default()
@@ -248,7 +250,7 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
     ))
     .with_children(|parent| {
         parent.spawn(
-            TextBundle::from_section("Working Title", title_style)
+            TextBundle::from_section("We don't talk\nabout Remie", title_style).with_text_alignment(TextAlignment::Center)
         );
 
         let button_flex_style = Style {
@@ -260,24 +262,13 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
 
         parent.spawn((
             ButtonBundle {
-                style : button_flex_style.clone(),
+                style : button_flex_style,
                 background_color : MENU_BUTTON_REGULAR.into(),
                 ..default()
             },
             MenuButton::Start
         )).with_children(|parent| {
             parent.spawn(TextBundle::from_section("Play", button_style.clone()));
-        });
-
-        parent.spawn((
-            ButtonBundle {
-                style : button_flex_style,
-                background_color : MENU_BUTTON_REGULAR.into(),
-                ..default()
-            },
-            MenuButton::Options
-        )).with_children(|parent| {
-            parent.spawn(TextBundle::from_section("Options", button_style));
         });
 
         parent.spawn((
@@ -419,9 +410,6 @@ fn menu_update(mut state : ResMut<GameState>,
                     MenuButton::Start => {
                         *state = GameState::Play;
                     },
-                    MenuButton::Options => {
-
-                    }
                 }
             },
             Interaction::Hovered => {
@@ -477,9 +465,17 @@ fn player_update(time : Res<Time>,
 }
 
 // Also animate the candle lighs with flicker
-fn candle_update(time : Res<Time>, perlin : Res<PerlinNoise>, mut lights : Query<&mut PointLight>) {
-    for mut light in lights.iter_mut().filter(|x| x.intensity < 800.) {
-        light.intensity = 100. + 40. * perlin.0.get([3. * time.elapsed_seconds() as f64, 0.0]) as f32;
+fn candle_update(time : Res<Time>, perlin : Res<PerlinNoise>, mut lights : Query<&mut PointLight>, yarn : Res<yarn::YarnManager>) {
+    for mut light in lights.iter_mut() {
+        if light.intensity < 800. {
+            light.intensity = 200. + 40. * perlin.0.get([3. * time.elapsed_seconds() as f64, 0.0]) as f32;
+        }
+        if yarn.storage.contains_key("$anxiety") {
+            let anxiety = yarn.storage.get("$anxiety").unwrap();
+            if let YarnValue::F32(anxiety) = anxiety {
+                light.color = Color::from(LIGHT_GOOD.lerp(LIGHT_ANXIETY, *anxiety * 0.1))
+            }
+        }
     }
 }
 
@@ -496,6 +492,7 @@ fn transparency_update(mut materials : ResMut<Assets<StandardMaterial>>, mut don
 fn restart(mut cmd : Commands,
            mut state : ResMut<GameState>,
            mut story : ResMut<StoryState>,
+           mut dialogue_state : ResMut<dialogue::DialogueState>,
            mut yarn : ResMut<yarn::YarnManager>,
            asset_lines : Res<Assets<yarn::YarnLinesAsset>>,
            mut asset_runner : ResMut<Assets<yarn::YarnRunnerAsset>>,
@@ -504,6 +501,13 @@ fn restart(mut cmd : Commands,
     story.is_remie_here = true;
     story.the_end = false;
     yarn.finished = false;
+    
+    *dialogue_state = dialogue::DialogueState {
+        selected_card : None,
+        previous_card : None,
+        cards : HashMap::new(),
+        important_decision : [None; 2]
+    };
 
     drinks.iter().for_each(|(x, d, c)| if d.is_some() || c.is_some() { cmd.entity(x).despawn(); });
 

@@ -32,7 +32,7 @@ const SPEAKER_WAITER : Color = Color::rgb(1.0, 0.7, 0.6);
 // ---
 // Resources
 
-enum CardStatus {
+pub enum CardStatus {
     New(Option<usize>),
     Card(Entity, Option<usize>),
     Played,
@@ -44,7 +44,7 @@ impl Default for CardStatus {
     }
 }
 
-enum WordType {
+pub enum WordType {
     Regular(String),
     Varying(String),
     PreviouslySelected(String),
@@ -68,9 +68,10 @@ impl Debug for WordType {
 
 #[derive(Resource, Default)]
 pub struct DialogueState {
-    selected_card : Option<Entity>,
-    previous_card : Option<Entity>,
-    cards : HashMap<String, (CardStatus, Vec<WordType>)>,
+    pub selected_card : Option<Entity>,
+    pub previous_card : Option<Entity>,
+    pub cards : HashMap<String, (CardStatus, Vec<WordType>)>,
+    pub important_decision : [Option<String> ; 2]
 }
 
 // ---
@@ -439,15 +440,24 @@ pub fn update(mut cmd : Commands,
                             *other_option = opt_num;
                             continue;
                         }
-                        if l.starts_with('!') {
-                            todo!()
-                        } 
 
                         let key : Vec<&str> = l.split(' ')
                             .filter(|x| !x.contains('('))
                             .collect();
                         let key = key.join(" ");
                         let prev_sel = story.selected_options.entry(question).or_default().contains(&key);
+
+                        if l.starts_with('!') {
+                            // Just two cards, hide the others
+                            if let None = state.important_decision[0] {
+                                state.important_decision[0] = Some(key[1..].to_string());
+                            } else {
+                                state.important_decision[1] = Some(key[1..].to_string());
+                            }
+
+                            yarn.important_decision = true;
+                            continue;
+                        } 
 
                         let mut words = vec![];
                         for w in l.split(' ') {
