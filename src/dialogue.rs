@@ -1,9 +1,6 @@
 // Dialogue system using the yarn spinner plugin for bevy
 
-use super::{
-    Player, Props, AssetsLoading,
-    yarn::*
-};
+use super::{Player, Props, AssetsLoading, StoryState, yarn::*};
 use std::{collections::HashMap, cmp::Ordering};
 use bevy::{
     prelude::*,
@@ -263,6 +260,7 @@ pub fn box_init(mut cmd : Commands,
 // Handle the changes in dialogue updates
 pub fn update(mut cmd : Commands,
               mut state : ResMut<DialogueState>,
+              mut story : ResMut<StoryState>,
               keyboard : Res<Input<KeyCode>>,
               mouse : Res<Input<MouseButton>>,
               asset_lines : Res<Assets<YarnLinesAsset>>,
@@ -396,6 +394,12 @@ pub fn update(mut cmd : Commands,
                         state.selected_card = None;
                         state.previous_card = None;
                     },
+                    "marcoComes" => {
+                        story.is_marco_here = true;
+                    },
+                    "marcoLeaves" => {
+                        story.is_marco_here = false;
+                    }
                     _ => println!("TODO: Command not implemented {c}")
                 }
             },

@@ -1,6 +1,6 @@
 title: Start
 tags: 
-position: -141,-936
+position: -583,-20
 ---
 // Variables
 <<declare $anxiety = 0 as number>>
@@ -43,7 +43,7 @@ Player: Hmm... it seems like they're having ___.
 ===
 
 title: BusyDay
-position: -665,-557
+position: -318,-247
 ---
 Remie: Marco's going to take a while...
 Player: Wait, is Marco still the waiter?
@@ -79,7 +79,7 @@ Player: Well, not really. It's not ___.
 ===
 
 title: WaiterComes
-position: 641,-579
+position: -362,151
 ---
 <<marcoComes>>
 Waiter: Hey guys, having ya both back is great!
@@ -113,7 +113,7 @@ Player: I guess I'll have ___
 ===
 
 title: OrangeJuice
-position: 14,-461
+position: -95,65
 ---
 Remie: I'm having the same! I recently developed an obsession with [happy]orange juice[/happy]. 
 Waiter: Two orange juices right up! I'm defenitly sitting with both of ya as soon as I can. 
@@ -146,10 +146,14 @@ Remmie: I still have the picture, by the way.
 ===
 
 title: OtherDrink
-position: 440,-301
+position: -71,228
 ---
-Remie: I'm having an orange juice Marco, thanks. 
-Waiter: So, an orange juice, [select $drink beer="a beer" weird="an... imma bring you a glass of water"/], and some tea I gotta spill.
+Remie: I'm having an orange juice Marco, thanks.
+<<if $drink == "beer">>
+  Waiter: So, an orange juice, a beer, and some tea I gotta spill.
+<<else>>
+  Waiter: So, an orange juice, an... imma bring you a glass of water, and some tea I gotta spill. 
+<<endif>>
 Waiter: Be right back!
 <<marcoLeaves>>
 <<wait 1>>
@@ -191,8 +195,8 @@ Player: It seems like ___ ago
 title: CrookedPicture
 position: 181,-4
 ---
-<<discard>> // Make the player discard their cards when entering a new scene
 Player: Wait, the crooked picture?
+<<discard>> // Make the player discard their cards when entering a new scene
 Remie: Yep, we look so goofy.
 <<if $talk_about_nico>>
     <<jump TalkAboutNico>>
@@ -202,7 +206,7 @@ Remie: Yep, we look so goofy.
 ===
 
 title: TalkAboutNico
-position: -489,277
+position: 600,-57
 ---
 Player: You keept it...
 Player: That's kind of ___ to me.
@@ -222,7 +226,7 @@ Player: That's kind of ___ to me.
 ===
 
 title: NicoDepressed
-position: -445,675
+position: 960,-50
 ---
 Player: You know?
 Player: In these two years I achieved ___ I wanted.
@@ -254,7 +258,7 @@ Remie: Shouldn't you be happy, then?
 ===
 
 title: NicoPerfect
-position: -397,1043
+position: 1248,-48
 ---
 Player: Well, I thought so.
 Player: I thought that if I got to the finish line, everything would be fine.
@@ -310,7 +314,7 @@ Player: ___.
 ===
 
 title: Exactly
-position: -421,1579
+position: 1620,-53
 ---
 <<set $anxiety to $anxiety - 1>>
 Remie: I felt like that before I knew I was enby.
@@ -362,126 +366,205 @@ Player: It's just... my life is like ___.
 ===
 
 title: NotReally
-position: 1226,-709
+position: 1441,-307
 ---
 <<set $anxiety to $anxiety + 1>>
 Remie: So, what is it then? 
-Remie: You know, this thing you're telling me really feels like my life before knowing I'm enby
-Remie: This uncunny feeling of not selfrecognition.
-Remie: And I think is completly normal even in a cis person.
-Remie: You reached the goal, so, what now?
+Remie: You know, what you're telling me feels like my life before knowing I'm enby.
+Remie: This uncunny lack of selfrecognition.
+Remie: I think it is completly normal, even for a cis person.
 Player: Well, I don't think we are the same.
 Player: You are ___ and I'm...
 -> (a) waste of time | nothing
   <<set $anxiety to $anxiety + 2>>
-  Player: I'm here just for pity.
-  Player: I thought you may have changed a bit. 
-  Player: Perhaps we could have a nice chat, that's all. 
-  Player: But I didn't really want to come. 
-  Player: This recognition you talk about is a no sense.
-  Player: I haven't thought on you in the last two years.  
+  Player: I'm just here because of pity.
+  Player: I thought you may have changed a bit.
+  Player: That perhaps we could have a nice chat, and that would be it.
+  Player: But I didn't really want to come.
+  Player: This recognition you talk about is bullshit.
+  Player: Please don't compare me with... whatever you are.
+  Player: I haven't even thought of you these past two years.
   <<jump AfterNicoBad>>
 -> (a) jail | (a) trigger
   <<set $anxiety to $anxiety + 2>>
-  Player: I'm just overpassed with you.
-  Player: I don't feel right with you.
-  Player: Being here remember me why we are not friends anymore. 
-  Player: My life has nothing to do with this nonsense of you.
+  Player: I just can't.
+  Player: Nothing feels right with you.
+  Player: Being here reminds me why we are not friends anymore. 
+  Player: My life has nothing to do with this nonsense you talk about.
   <<jump AfterNicoBad>>
 -> everything
-  Player: I'm just envious of you.
-  Player: In a good way. Well. I hope so. 
-  Player: I didn't really get to understand you, but I realized I didn't need to. 
-  Player: I admire you just because, even if I know we are not the same, I have to recognize you something:
-  Player: know how to be ok with your life from a base, not depending on some goals, 
-  Player: but having the endurance to take actions in virtue of what it's ok with you regardless of some made-up end.
+  Player: I'm just so envious of you.
+  Player: In a good way. Well. I hope so.
+  Player: I didn't really understood when you... you know.
+  Player: And I'm so sorry for that.
+  Player: We may not be the same, but what you say makes a lot of sense.
+  Player: I really admire you, you know?
+  Player: You know how to be ok with your life without depending on some arbitrary goals.
+  Player: You have the endurance to take actions in virtue of what it's good for you, regardless of some made-up end.
   <<jump AfterNicoGood>>
 -> (an) important thing
-  Player: I'm silly. Uncapable to recognize it. 
-  Player: It's not like I had the faith of solve my problems by seeing you today. 
-  Player: Or you acepting me like that. 
-  Player: I know you've dealing with a lot and, honestly, I don't really understand you. 
-  Player: I didn't come here to be friends again,
-  Player: but to meet again with something that have scared me for the last years. 
-  Player: So, no, we are not the same: I find you so different that I couldn't even mantain a relation with you,
-  Player: but now, over time,
-  Payer: I learnt that this distance is important, an so you should be.
+  Player: I'm silly. Uncapable to recognize it.
+  Player: I couldn't have expected to solve all my problems by seeing you today. 
+  Player: Or that you would accept me like that.
+  Player: Specially after I dissapeared from your life so suddenly.
+  Player: If I'm being honest, I don't really understand you yet.
+  Player: No, we are not the same: I found you so different that I couldn't even kept a relationship with you.
+  Player: But with time I have learnt that distance can be important, an so are you.
   <<jump AfterNicoGood>>
 ===
 
 title: AfterNicoGood
-position: 1953,-410
+position: 1781,-268
 ---
 <<discard>>
-*Remie interrupts the conversation when they see Marco coming*
-Remie: Oh, look who's coming
+Remie: Oh, look who's coming.
+<<marcoComes>>
 <<if $busy_work>>
   Player: Marco! I can't belive you still work here. 
-  Waiter: Well, I'm simply the best, the surprise here is you coming back, Nico. And coming with Remie!
-  Player: Well, yes, I didn't come in a while.
-  Waiter: Well that's true if a while equals two years.
-  Waiter: Remie, I know you understand me, we really gotta explain maths to this lad. 
-  Remie: Oh yes we should.
+  Waiter: What can I say, I'm simply the best.
+  Waiter: I'm surprised to see ya coming back, Nico. And along Remie!
+  Player: Yeah, I didn't come in a while.
+  Waiter: Only true if you call a while two years.
+  Waiter: Remie, I need help, we really gotta explain maths to this lad. 
+  Remie: Oh absolutely.
 <<endif>>
-Remie: Have you got some time to sit with us for a bit, Marco?
-Waiter: I do! But don't ya want a drink?
-Player: We can have it later, first the chat!
-Waiter: What have tou being doing the last two years, Nico? 
-Player: Well, you now just ___
--> work
+Remie: Do you have some time to sit with us for a bit, Marco?
+Waiter: I finally do! But don't ya want a drink?
+Player: We can have it later!
+Waiter: What have you been doing this past years, Nico? 
+Player: Well, I spent most of the time ___.
+-> (at) work
   <<jump NicoWork>>
--> a family
+-> (with) (my) family
   <<jump NicoFamily>>
 ===
+
 title: NicoWork
-position: 1815,110
+position: 2111,-265
 ---
 Waiter: Ah yes, that [bored]mathematician[bored] stuff.
-Remie: Yeah, Marco, careful, he can really operate us haha.
-Player: Thanks, lads, I missed your special support. 
-Waiter: Sure ya did! So, still a doctoral student? 
+Remie: Marco, careful, he might divide us in half haha.
+Player: Thanks, lads, I missed you being sooo supportive. 
+Waiter: Sure ya did! So, still one of those doctoral students? 
 Player: Well, not really.
-Player: I finished the thesis. 
-Waiter: WOW! That's great, congrats, Mr. Doctor! I don't know what are ya drinking but it's on the house. 
-Waiter: You may be really in a sweet life momment so.
-Player: Well, kinda
+Player: I finished my thesis. 
+Waiter: Wow! That's great, congrats, Mr. Doctor! I don't know what are ya drinking but it's on the house. 
+Waiter: You must be living a really sweet life at the momment.
+Player: Well, kinda.
+Waiter: Don't seem very sure.
+Player: I was about to tell Remie in this update date...
+Player: But now I'm ___.
+-> uneployed | (out) (of) work
+  Remie: What?
+  Waiter: Really?
+  Remie: Yeah, are there any other motives theory specialists, like, in the world? 
+  Player: Of course there are, it is a very serious line of work! 
+  Player: I was an intern for a while. 
+  Player: But then depression kicked in, I don't really know why. 
+  Player: So some days I wasn't, like, going to work.
+  Player: The only reason I got up of bed was to drive Dani to school.
+  Player: When the intership was due renewal, they weren't very subtle about not wanting me there anymore.
+  Player: Honestly, I can't be mad at them.
+  Player: I guess I'll look at an industry job or something.
+-> (an) intern
+  Waiter: But that's fantastic, isn't it?
+  Player: Well, I have two sons,
+  Player: a mortage,
+  Player: many bills,
+  Player: and they are paying me peanuts.
+  Player: Peanuts might even be generous.
+  Player: I'm considering quitting.
+  Player: Maybe try to find a job in the industry, they really want mathematicians.
+Remie: Wait, [firmly]no[/firmly]! You've being dreaming of working in academia for as long as I know you. 
+Player: I did, yeah, but now I have responsabilities.
+Remie: Yeah, you have, but your responsabilities need someone to rely on.
+Remie: And you can't be that person if you are not ok.
+Remie: Look, I had to change careers. I'm a carpenter now. 
+Remie: Yeah, unexpected, I know.
+Waiter: They even made some of the bar's chairs, kinda good.
+Remie: Only kinda? I'm the best, honey.
+Remie: And, you know, carpentry is not known for being the most open minded job there is.
+Remie: There are a lot of... well, guys. And I struggled because of my gender.
+Remie: But I was desperate and I really enjoy the manual work, so I fought to be here.
+Remie: I ended up with a very good team who madly supports me.
+Remie: That's everything I could want.
+Player: So they're like your ___.
+-> Viena's circle
+  Remie: Is Viena's circle the math freak's name for trusty people?
+  Player: Yep, they are.
+-> therapist
+  Remie: No, not all.
+  Remie: I have a therapist as my therapist, silly.
+  Remie: They are my support system.
+-> family
+  Remie: You can bet they are.
+  Remie: I don't really belive in the whole chosen family thing.
+  Remie: It's not like I chose them.
+  Remie: But they hold me.
+  Remie: And I love them for it.
+-> other
+  Remie: Again with the nosenses.
+  Remie: Are you ok?
+  Remie: I know we didn't see each other in a while, but I care about you. 
+  Player: I'm... [emotional]thanks[/emotional].
+  Player: Just a bit drained, that's all.
+  Remie: We can talk about something else if you need to. 
+  Player: No, please. This is really helping me.
+  Remie: I'm glad it does.
+Remie: Look, what I'm trying to say is I know it can be hard.
+Remie: And honestly, having to work is so shitty.
+Remie: Is very hard to enjoy it even a litle bit.
+Remie: But that's precisely why you should keep trying to be somewhat comfortable with what you do. 
+Remie: Because having something or someone to fight for is really worth it.
+Remie: And that's my presidental speech, thank's for coming.
+Waiter: I'll vote for you!
+Player: Haha guess I needed it.
+Player: Thanks for today.
+Player: We really should do it again.
+<<theEnd 1>>
 ===
 
 title: AfterNicoBad
-position: 1637,-981
+position: 1798,-489
 ---
+<<discard>>
+<<marcoComes>>
 Waiter: Hey, lads, it's great to have ya both ba...
 Remie: You know what?
 Remie: I don't have to endure this.
 Remie: And I'm not doing it.
-Remie: Thakfuly I have a good job and an amazing circle.
-Remie: I didn't even want us to be friends again. 
-Remie: I just needed to look at the past. 
-Remie: Now I firmly say I'm enby.
-Remie: Regardless you like it or not. 
-Remie: I don't need you to afirme me. 
-Remie: Goodbye 
-<<Wait 1>>
+Remie: Thakfuly I have a good job and amazing group of people by my side.
+Remie: I didn't even want for us to be friends again. 
+Remie: I just needed to check on you, to check on my past.
+Remie: But I guess you haven't grown a bit.
+Remie: I'm enby! For goodness sake.
+Remie: Whether you like it or not.
+Remie: I don't need you to afirm me.
+Remie: If you can't really respect that about myself there is no point in us talking.
+Remie: Goodbye.
+<<remieLeaves>>
+<<wait 1>>
 Waiter: What's happening here?
-Player: Oh hey Marco.
+Player: Oh, hey Marco.
 Player: It's nothing. 
 Player: You know he can be ___
--> a drama queen. 
--> an idiot. 
-Waiter: Well, not, I don't know it. 
-Waiter: They is a very good friend and someone you can relay on.
-Waiter: It seems like Remie's not the problem here. 
-Waiter: You know English, you can say "they". 
-Player: Oh come on. 
-Payer: He just want me to come here to show off in front of me, it was just a revenge. 
-Waiter: No, you expected this to be a battle. 
+-> a drama queen
+-> an idiot
+Waiter: No, I don't know that.
+Waiter: They have been a very good friend, someone you can relay on that makes me enjoy our time together.
+Waiter: I can't say the same about you.
+Waiter: You have the balls to dissapear for two fucking years, and now you come here and misgender my friend?
+Waiter: You know English, you can say "they".
+Player: Oh come on.
+Player: He just wanted me to come here to show off in front of me, it was just revenge.
 Waiter: You know what? I don't want you here.
 Waiter: Get out of the bar.
-Waiter: I don't wanna see you anymore.
+Waiter: I don't wanna see you again.
+<<theEnd 2>>
 ===
 
 title: TalkAboutRemie
-position: 584,346
+position: 610,127
 ---
 Player: So you still have it ___.
 -> (in) the same place
@@ -514,7 +597,7 @@ Player: So you still have it ___.
 ===
 
 title: LookDeadname
-position: 838,791
+position: 721,367
 ---
 Player: Look, ___, about that...
 -> !Remie // ! is used to specify that only these options should be available
@@ -524,7 +607,7 @@ Player: Look, ___, about that...
   Remie: I certainly am not.
   Remie: But I'm glad you came.
   Player: I'm glad too.
--> !Mario
+-> !-redacted-
   <<set $anxiety to $anxiety + 2>>
   <<set $offense to $offense + 2>>
   <<set $deadname to true>>
@@ -538,7 +621,7 @@ Player: Look, ___, about that...
 ===
 
 title: BusyDayMarcoDrinks
-position: 1754,790
+position: 944,126
 ---
 <<marcoComes>>
 Waiter: Hey guys! I didn't think I would see ya both together again!
@@ -573,25 +656,26 @@ Waiter: Hey guys! I didn't think I would see ya both together again!
 ===
 
 title: AfterDeadname
-position: 1276,390
+position: 1368,365
 ---
 Remie: You know what, Nico?
 Remie: I really thought we could talk again, but I guess I was wrong.
-Player: I didn't mean to ___ you.
--> offend 
-  Player: it's just a name. 
+Player: I didn't mean to ___.
+-> offend (you)
+  Player: It's just a name. 
   Remie: You know is more than that. 
-  Remie: Calling someone by it's deadname [emphasis]is[/emphasis] offensive, no matter the intntions. 
-  Remie: Why do you think we didn't see each other in two years? Exactly because you couldn't treat me as you should.
--> give you hope
-  Player: by acepting the invitation
+  Remie: Calling someone by their deadname [emphasis]is[/emphasis] offensive, no matter the intention. 
+  Remie: Why do you think we didn't see each other in two years? 
+  Remie: You cant't even treat me with the bare minimum of respect.
+-> (give) (you) hope
   <<set $anxiety to $anxiety + 2>>
+  Player: I know I shouldn't have accepted your invitation.
   Remie: Give me hope? Hope for what?
-  Remie: Look, I needed to see you to ensure me, not to desparetly be yout friend again.
+  Remie: Look, I did not came here to desperatly beg be your friend again.
 ===
 
 title: AfterMarcoComes
-position: 2070,354
+position: 1365,127
 ---
 
 ===

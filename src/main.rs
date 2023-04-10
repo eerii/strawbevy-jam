@@ -1,9 +1,8 @@
 #![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
 // TODO:
-// - Menú de opciones y pantalla de cartas
 // - Música
-// - Load asset screen and main menu
+// - Mejorar menú
 // - Efectos especiales, polish, etc...
 
 mod yarn;
@@ -16,7 +15,7 @@ use yarn::YarnPlugin;
 use bevy::{
     prelude::*,
     window::WindowResolution,
-    render::{render_resource::TextureDescriptor, view::RenderLayers}
+    render::{render_resource::TextureDescriptor, view::RenderLayers}, core_pipeline::clear_color::ClearColorConfig
 };
 
 use std::collections::HashMap;
@@ -24,9 +23,12 @@ use noise::{Perlin, NoiseFn};
 
 // ---
 
-const MENU_BUTTON_REGULAR : Color = Color::rgba(0.5, 0.0, 0.0, 0.3);
-const MENU_BUTTON_HOVER : Color = Color::rgba(0.0, 0.5, 0.0, 0.3);
-const MENU_BUTTON_CLICKED : Color = Color::rgba(0.0, 0.0, 0.5, 0.3);
+const MENU_BACKGROUND : Color = Color::rgb(0.05, 0.12, 0.08);
+const MENU_BUTTON_REGULAR : Color = Color::rgba(0., 0., 0., 0.2);
+const MENU_BUTTON_HOVER : Color = Color::rgba(0.2, 0.5, 0.3, 0.05);
+
+const LOOK_REMIE : Vec3 = Vec3::new(0.0, -0.2, -1.0);
+const LOOK_NICO : Vec3 = Vec3::new(0.2, -0.2, -1.0);
 
 // ---
 // App
@@ -103,6 +105,13 @@ pub enum GameState{
 }
 
 #[derive(Resource)]
+pub struct StoryState{
+    is_marco_here : bool,
+    //is_remie_here : bool,
+    //drink : Option<String>,
+}
+
+#[derive(Resource)]
 pub struct Props {
     box_mesh : Handle<Mesh>,
     box_style : HashMap<&'static str, TextStyle>,
@@ -128,6 +137,13 @@ fn res_init(mut cmd : Commands) {
     // Perlin noise resource
     cmd.insert_resource(PerlinNoise(Perlin::new(1)));
 
+    // Story state
+    cmd.insert_resource(StoryState{
+        is_marco_here : false,
+        //is_remie_here : true,
+        //drink : None,
+    });
+
     // Player
     cmd.spawn((
         SpatialBundle {
@@ -144,6 +160,9 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
     let menu_pass_layer = RenderLayers::layer(1);
     cmd.spawn((
         Camera2dBundle {
+            camera_2d: Camera2d {
+                clear_color: ClearColorConfig::Custom(MENU_BACKGROUND)
+            },
             camera : Camera {
                 is_active : false,
                 ..default()
@@ -155,19 +174,26 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
     ));
 
     // Menu text style
-    let style = TextStyle {
+    let button_style = TextStyle {
         font: props.font.clone(),
         font_size: 24.0,
+        color: Color::rgb(0.9, 0.9, 0.9),
+    };
+    let title_style = TextStyle {
+        font: props.font.clone(),
+        font_size: 48.0,
         color: Color::rgb(0.9, 0.9, 0.9),
     };
 
     // Menu node
     cmd.spawn((
         NodeBundle {
-            style: Style {
-                size: Size::width(Val::Percent(100.0)),
-                align_items: AlignItems::Center,
-                justify_content: JustifyContent::Center,
+            style : Style {
+                size : Size::width(Val::Percent(100.0)),
+                align_items : AlignItems::Center,
+                justify_content : JustifyContent::Center,
+                flex_direction: FlexDirection::Column,
+                gap : Size::new(Val::Auto, Val::Px(32.0)),
                 ..default()
             },
             ..default()
@@ -176,21 +202,37 @@ fn menu_init(mut cmd : Commands, props : Res<Props>) {
         MenuNode
     ))
     .with_children(|parent| {
+        parent.spawn(
+            TextBundle::from_section("Working Title", title_style.clone())
+        );
+
+        let button_flex_style = Style {
+            size : Size::new(Val::Px(150.0), Val::Px(65.0)),
+            justify_content : JustifyContent::Center,
+            align_items : AlignItems::Center,
+            ..default()
+        };
+
         parent.spawn((
             ButtonBundle {
-                style: Style {
-                    size: Size::new(Val::Px(150.0), Val::Px(65.0)),
-                    justify_content: JustifyContent::Center,
-                    align_items: AlignItems::Center,
-                    ..default()
-                },
-                background_color: Color::rgb(0.1, 0.1, 0.1).into(),
+                style : button_flex_style.clone(),
+                background_color : MENU_BUTTON_REGULAR.into(),
                 ..default()
             },
-            menu_pass_layer,
             MenuButton::Start
         )).with_children(|parent| {
-            parent.spawn(TextBundle::from_section("Button", style.clone()));
+            parent.spawn(TextBundle::from_section("Play", button_style.clone()));
+        });
+
+        parent.spawn((
+            ButtonBundle {
+                style : button_flex_style,
+                background_color : MENU_BUTTON_REGULAR.into(),
+                ..default()
+            },
+            MenuButton::Options
+        )).with_children(|parent| {
+            parent.spawn(TextBundle::from_section("Options", button_style));
         });
     });
 }
@@ -306,7 +348,6 @@ fn menu_update(mut state : ResMut<GameState>,
     for (inter, mut bg, button) in buttons.iter_mut() {
         match *inter {
             Interaction::Clicked => {
-                *bg = MENU_BUTTON_CLICKED.into();
                 match *button {
                     MenuButton::Start => {
                         *state = GameState::Play;
@@ -334,9 +375,23 @@ fn remie_update(time : Res<Time>, mut remie : Query<&mut Transform, With<Remie>>
 }
 
 // Animate player camera
-fn player_update(time : Res<Time>, mut player : Query<&mut Transform, With<Player>>) {
+fn player_update(time : Res<Time>,
+                 story : Res<StoryState>,
+                 mut player : Query<&mut Transform, With<Player>>,
+                 mut lerp_time : Local<(f32, bool)>) {
     if let Ok(mut trans) = player.get_single_mut() {
-        *trans = trans.looking_at(trans.translation + Vec3::new(time.elapsed_seconds().sin() * 0.02, -0.2, -1.), Vec3::Y);
+        if story.is_marco_here != lerp_time.1 {
+            *lerp_time = (0., story.is_marco_here);
+        }
+
+        if story.is_marco_here {
+            *trans = trans.looking_at(trans.translation + LOOK_REMIE.lerp(LOOK_NICO, lerp_time.0), Vec3::Y);
+        } else {
+            *trans = trans.looking_at(trans.translation + LOOK_NICO.lerp(LOOK_REMIE, lerp_time.0), Vec3::Y);
+        };
+
+        if lerp_time.0 >= 1. { lerp_time.0 = 1.; }
+        else { lerp_time.0 += time.delta_seconds() * 2.; }
     }
 }
 
@@ -348,10 +403,11 @@ fn candle_update(time : Res<Time>, perlin : Res<PerlinNoise>, mut lights : Query
 }
 
 // Add transparency to sprites
-fn transparency_update(mut materials : ResMut<Assets<StandardMaterial>>, done : Local<bool>) {
+fn transparency_update(mut materials : ResMut<Assets<StandardMaterial>>, mut done : Local<bool>) {
     if !*done {
         for (_, mat) in materials.iter_mut() {
             mat.alpha_mode = AlphaMode::Mask(0.5);
         }
+        *done = true;
     }
 }

@@ -7,7 +7,13 @@ choose your words carefully, since they can have unexpected side effects.
 your can only play each card once, so it may be wise to reserve them for later!
 watch as the mood of the encounter shifts with every action you take.
 
-by josekoalas and miguel lópez golán.
+content warnings: in some of the conversations there are depictions of
+transphobia, missgender and deadnaming, always as a result of the player's actions.
+there is also a non explicit mention of suicidal thoughts.
+please take care when playing and while we tried to cover this topics the best we could,
+it is completely ok if you need to stop at any point.
+
+by your fellow enbies, josekoalas and miguel lópez golán.
 
 ### submission for the [bevy jam](https://itch.io/jam/bevy-jam-3) #3 🕹️
 
